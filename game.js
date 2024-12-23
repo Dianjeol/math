@@ -3,7 +3,7 @@ const COLORS = {
     darkAccent: '#393E46',
     primary: '#00ADB5',
     light: '#EEEEEE',
-    secondary: '#FF5733' // Neue Farbe
+    secondary: '#FF5733'
 };
 
 // Initialize Supabase client
@@ -77,23 +77,24 @@ function create() {
         .setOrigin(1, 0)
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', toggleSound);
-    
-
 
     fetchGlobalHighscores(this);
     initializeQuestions();
     generateQuestion(this);
 
-    this.time.addEvent({ delay: 1000, callback: () => {
+    this.time.addEvent({
+        delay: 1000,
+        callback: () => {
             timeLeft--;
             timerText.setText(`Zeit: ${timeLeft}`);
             if (timeLeft <= 0) {
                 gameOver(this);
             }
-        }, loop: true
+        },
+        loop: true
     });
 
-     music = this.sound.add('music', { loop: true, volume: 0.5 });
+    music = this.sound.add('music', { loop: true, volume: 0.5 });
     music.play();
 }
 
@@ -129,14 +130,14 @@ function initializeQuestions() {
 }
 
 function generateQuestion(scene) {
-     if (availableQuestions.length === 0) {
+    if (availableQuestions.length === 0) {
         initializeQuestions();
     }
 
     const question = availableQuestions.pop();
     const num1 = question.num1;
     const num2 = question.num2;
-    
+
     currentAnswer = num1 * num2;
     if (questionText) questionText.destroy();
     questionText = scene.add.text(config.width / 2, 150, `${num1} x ${num2} = ?`, { fontSize: "64px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
@@ -160,8 +161,7 @@ function createAnswerButtons(scene, answers) {
     const buttonWidth = 120;
     const spacing = 10;
     const startX = (config.width - (6 * buttonWidth + 5 * spacing)) / 2;
-    const startY = config.height - 100; // Position am unteren Rand
-
+    const startY = config.height - 100;
 
     const buttonColors = [
         COLORS.primary,
@@ -173,52 +173,48 @@ function createAnswerButtons(scene, answers) {
     ];
 
     for (let i = 0; i < answers.length; i++) {
-            const x = startX + i * (buttonWidth + spacing) + buttonWidth / 2;
-           const y = startY;
+        const x = startX + i * (buttonWidth + spacing) + buttonWidth / 2;
+        const y = startY;
 
-            const buttonColor = buttonColors[i];
-            const button = scene.add.text(x, y, answers[i], { fontSize: "32px", color: COLORS.dark, backgroundColor: buttonColor, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
-                .setOrigin(0.5)
-                .setInteractive({ useHandCursor: true })
-                .on("pointerover", () => { button.setStyle({ backgroundColor: COLORS.darkAccent }); scene.tweens.add({ targets: button, scale: 1.1, duration: 100, ease: "Sine.easeInOut" }); })
-                .on("pointerout", () => { button.setStyle({ backgroundColor: buttonColor }); scene.tweens.add({ targets: button, scale: 1, duration: 100, ease: "Sine.easeInOut" }); })
-                 .on("pointerdown", function() {
-                     checkAnswer(this.text, scene, this);
-                     });
-            answerButtons.push(button);
-        }
+        const buttonColor = buttonColors[i];
+        const button = scene.add.text(x, y, answers[i], { fontSize: "32px", color: COLORS.dark, backgroundColor: buttonColor, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
+            .setOrigin(0.5)
+            .setInteractive({ useHandCursor: true })
+            .on("pointerover", () => { button.setStyle({ backgroundColor: COLORS.darkAccent }); scene.tweens.add({ targets: button, scale: 1.1, duration: 100, ease: "Sine.easeInOut" }); })
+            .on("pointerout", () => { button.setStyle({ backgroundColor: buttonColor }); scene.tweens.add({ targets: button, scale: 1, duration: 100, ease: "Sine.easeInOut" }); })
+            .on("pointerdown", function() {
+                checkAnswer(this.text, scene, this);
+            });
+        answerButtons.push(button);
+    }
 }
 
-
 function checkAnswer(selectedAnswer, scene, button) {
-
-
     const parsedSelectedAnswer = parseInt(selectedAnswer.trim(), 10);
     const parsedCurrentAnswer = parseInt(currentAnswer, 10);
-
-
     const isCorrect = parsedSelectedAnswer === parsedCurrentAnswer;
-
 
     if (isCorrect) {
         score += 10;
         scoreText.setText(`Punkte: ${score}`);
         questionsAskedInLevel++;
-         if (questionsAskedInLevel >= questionsPerLevel) {
+
+        // Timer zurücksetzen
+        timeLeft = 15;
+        timerText.setText(`Zeit: ${timeLeft}`);
+
+        if (questionsAskedInLevel >= questionsPerLevel) {
             levelUp(scene);
         } else {
             generateQuestion(scene);
         }
         if (soundOn) scene.sound.play("correct");
-         
-    }
-     else {
+    } else {
         timeLeft -= 5;
         if (timeLeft < 0) timeLeft = 0;
         timerText.setText(`Zeit: ${timeLeft}`);
         if (soundOn) scene.sound.play("wrong");
 
-            // Highlight the incorrectly selected button
         if (button) {
             scene.tweens.add({
                 targets: button,
@@ -230,7 +226,6 @@ function checkAnswer(selectedAnswer, scene, button) {
         }
     }
 }
-
 
 function levelUp(scene) {
     const levelUpText = scene.add.text(config.width / 2, 300, `Level Up!`, { fontSize: "64px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
@@ -253,18 +248,17 @@ function levelUp(scene) {
     generateQuestion(scene);
 }
 
-
 async function gameOver(scene) {
     scene.time.removeAllEvents();
 
-     const background = scene.add.rectangle(0, 0, config.width, config.height, 0x000000, 0.7).setOrigin(0);
+    const background = scene.add.rectangle(0, 0, config.width, config.height, 0x000000, 0.7).setOrigin(0);
 
     const gameOverMenu = scene.add.container(config.width / 2, config.height / 2);
 
     const gameOverText = scene.add.text(0, -150, 'Game Over!', { fontSize: "64px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
     gameOverMenu.add(gameOverText);
 
-     const finalScoreText = scene.add.text(0, -80, `Deine Punktzahl: ${score}`, { fontSize: "32px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5);
+    const finalScoreText = scene.add.text(0, -80, `Deine Punktzahl: ${score}`, { fontSize: "32px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5);
     gameOverMenu.add(finalScoreText);
 
     const usernameInput = scene.add.dom(0, -20, 'input', `width: 200px; height: 30px; font-size: 16px; text-align: center; background-color: ${COLORS.light}; color: ${COLORS.dark}; border: 2px solid ${COLORS.primary}; border-radius: 5px;`, 'Your Name');
@@ -314,13 +308,12 @@ async function gameOver(scene) {
     gameOverMenu.add(restartButton);
 
     if (soundOn) scene.sound.play("gameover");
-     music.stop();
+    music.stop();
 }
-
 
 async function showGlobalHighscores(scene, parentMenu) {
     try {
-         parentMenu.setVisible(false);
+        parentMenu.setVisible(false);
 
         const { data: highscores, error } = await supabase
             .from('highscores')
@@ -332,7 +325,7 @@ async function showGlobalHighscores(scene, parentMenu) {
             throw error;
         }
         const highscoresMenu = scene.add.container(config.width / 2, config.height / 2);
-          const backButton = scene.add.text(0, 180, 'Zurück', { fontSize: "24px", color: COLORS.light, backgroundColor: COLORS.darkAccent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
+        const backButton = scene.add.text(0, 180, 'Zurück', { fontSize: "24px", color: COLORS.light, backgroundColor: COLORS.darkAccent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
             .setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
             .on("pointerover", () => backButton.setStyle({ backgroundColor: COLORS.primary, color: COLORS.dark }))
@@ -342,7 +335,6 @@ async function showGlobalHighscores(scene, parentMenu) {
                 parentMenu.setVisible(true);
             });
         highscoresMenu.add(backButton);
-
 
         if (highscores.length > 0) {
             let yOffset = -100;
@@ -359,10 +351,9 @@ async function showGlobalHighscores(scene, parentMenu) {
     } catch (error) {
         console.error("Fehler beim Laden der globalen Highscores:", error);
         const errorText = scene.add.text(0, 0, 'Fehler beim Laden der Highscores', { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5);
-         highscoresMenu.add(errorText);
+        highscoresMenu.add(errorText);
     }
 }
-
 
 async function fetchGlobalHighscores(scene) {
     try {
@@ -385,7 +376,6 @@ async function fetchGlobalHighscores(scene) {
         globalHighscoreText.setText('Fehler beim Laden der Highscores.');
     }
 }
-
 
 async function submitScore(username, score) {
     try {
@@ -413,12 +403,12 @@ function restartGame(scene) {
     currentTableLevel = 2;
     initializeQuestions();
     scene.scene.restart();
-     music.play();
+    music.play();
 }
 
 function toggleSound() {
-     soundOn = !soundOn;
-     game.sound.setMute(!soundOn);
+    soundOn = !soundOn;
+    game.sound.setMute(!soundOn);
     const soundButton = this.scene.children.list.find(child => child.type === 'Text' && child.text === (soundOn ? '🔊' : '🔇'));
     if (soundButton) {
         soundButton.setText(soundOn ? '🔊' : '🔇');
