@@ -6,8 +6,8 @@ const COLORS = {
 };
 
 // Initialize Supabase client
-const SUPABASE_URL = 'https://dnrrdfapxzqpfabjxcji.supabase.co'; // Replace with your Supabase URL
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucnJkZmFweHpxcGZhYmp4Y2ppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NjMwODksImV4cCI6MjA1MDUzOTA4OX0.mzVEpUpoAH2JzKBEXRgQ_ParxBju9f97qRlQv4uR8aM'; // Replace with your Supabase Anon Key
+const SUPABASE_URL = 'https://dnrrdfapxzqpfabjxcji.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucnJkZmFweHpxcGZhYmp4Y2ppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NjMwODksImV4cCI6MjA1MDUzOTA4OX0.mzVEpUpoAH2JzKBEXRgQ_ParxBju9f97qRlQv4uR8aM';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let timerText;
@@ -38,7 +38,10 @@ const config = {
         update: update,
     },
     audio: {
-        disableWebAudio: true // Fix for some audio issues
+        disableWebAudio: true
+    },
+    dom: {
+        createContainer: true
     }
 };
 
@@ -157,7 +160,7 @@ function checkAnswer(selectedAnswer, scene) {
 
         if (soundOn) scene.sound.play("correct");
 
-        const emitter = scene.add.particles(config.width / 2, 300, "flares", { frame: { frames: ["red", "green", "blue"], cycle: true }, blendMode: "ADD", lifespan: 500, speed: { min: 200, max: 300 }, scale: { start: 0.8, end: 0 }, quantity: 20 });
+        const emitter = scene.add.particles(config.width / 2, 300, "flares", { blendMode: "ADD", lifespan: 500, speed: { min: 200, max: 300 }, scale: { start: 0.8, end: 0 }, quantity: 20 });
         scene.time.delayedCall(500, () => emitter.destroy());
 
         if (questionsAskedInLevel >= questionsPerLevel) {
@@ -184,7 +187,7 @@ function levelUp(scene) {
     if (soundOn) scene.sound.play("levelup");
     scene.tweens.add({ targets: levelUpText, scale: 1.5, y: 200, alpha: 0, duration: 1500, ease: "Cubic.easeOut", onComplete: () => levelUpText.destroy() });
 
-    const emitter = scene.add.particles(config.width / 2, 300, "flares", { frame: "green", blendMode: "ADD", lifespan: 1500, speed: { min: 100, max: 400 }, angle: { min: 0, max: 360 }, scale: { start: 1.2, end: 0 }, quantity: 50 });
+    const emitter = scene.add.particles(config.width / 2, 300, "flares", { blendMode: "ADD", lifespan: 1500, speed: { min: 100, max: 400 }, angle: { min: 0, max: 360 }, scale: { start: 1.2, end: 0 }, quantity: 50 });
     scene.time.delayedCall(1500, () => emitter.destroy());
 
     currentLevel++;
@@ -202,58 +205,123 @@ function levelUp(scene) {
 async function gameOver(scene) {
     scene.time.removeAllEvents();
 
-    const gameOverContainer = document.createElement('div');
-    gameOverContainer.id = 'game-over-ui';
+    // Create a semi-transparent background for the menu
+    const background = scene.add.rectangle(0, 0, config.width, config.height, 0x000000, 0.7).setOrigin(0);
 
-    const gameOverText = document.createElement('h2');
-    gameOverText.textContent = 'Game Over!';
-    gameOverText.style.color = COLORS.light;
+    // Group to hold all menu elements
+    const gameOverMenu = scene.add.container(config.width / 2, config.height / 2);
 
-    const finalScoreText = document.createElement('p');
-    finalScoreText.textContent = `Deine Punktzahl: ${score}`;
-    finalScoreText.style.color = COLORS.light;
+    // Game Over Text
+    const gameOverText = scene.add.text(0, -150, 'Game Over!', { fontSize: "64px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
+    gameOverMenu.add(gameOverText);
 
-    const usernameInput = document.createElement('input');
-    usernameInput.type = 'text';
-    usernameInput.id = 'username-input';
-    usernameInput.placeholder = 'Dein Name';
-    usernameInput.value = localStorage.getItem('username') || '';
+    // Final Score Text
+    const finalScoreText = scene.add.text(0, -80, `Deine Punktzahl: ${score}`, { fontSize: "32px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5);
+    gameOverMenu.add(finalScoreText);
 
-    const saveScoreButton = document.createElement('button');
-    saveScoreButton.textContent = 'Speichern und Highscore senden';
-    saveScoreButton.onclick = async () => {
-        const username = usernameInput.value.trim();
-        if (username) {
-            localStorage.setItem('username', username);
-            await submitScore(username, score);
-            alert('Highscore gesendet!');
-            showGlobalHighscores();
-            gameOverContainer.remove();
+    // Username Input
+    const usernameInput = scene.add.dom(0, -20, 'input', `width: 200px; height: 30px; font-size: 16px; text-align: center; background-color: ${COLORS.light}; color: ${COLORS.dark}; border: 2px solid ${COLORS.primary}; border-radius: 5px;`, 'Your Name');
+    usernameInput.node.value = localStorage.getItem('username') || '';
+    gameOverMenu.add(usernameInput);
+
+    // Save Score Button
+    const saveScoreButton = scene.add.text(0, 30, 'Speichern', { fontSize: "24px", color: COLORS.light, backgroundColor: COLORS.darkAccent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true })
+        .on("pointerover", () => saveScoreButton.setStyle({ backgroundColor: COLORS.primary, color: COLORS.dark }))
+        .on("pointerout", () => saveScoreButton.setStyle({ backgroundColor: COLORS.darkAccent, color: COLORS.light }))
+        .on("pointerdown", async () => {
+            const username = usernameInput.node.value.trim();
+            if (username) {
+                localStorage.setItem('username', username);
+                await submitScore(username, score);
+                alert('Highscore gesendet!');
+                gameOverMenu.destroy();
+                background.destroy();
+                restartGame(scene);
+            } else {
+                alert('Bitte gib einen Namen ein.');
+            }
+        });
+    gameOverMenu.add(saveScoreButton);
+
+    // View Highscores Button
+    const viewHighscoresButton = scene.add.text(0, 80, 'Highscores', { fontSize: "24px", color: COLORS.light, backgroundColor: COLORS.darkAccent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true })
+        .on("pointerover", () => viewHighscoresButton.setStyle({ backgroundColor: COLORS.primary, color: COLORS.dark }))
+        .on("pointerout", () => viewHighscoresButton.setStyle({ backgroundColor: COLORS.darkAccent, color: COLORS.light }))
+        .on("pointerdown", () => {
+            showGlobalHighscores(scene, gameOverMenu); // Function to display highscores (see below)
+        });
+    gameOverMenu.add(viewHighscoresButton);
+
+    // Restart Button
+    const restartButton = scene.add.text(0, 130, 'Neustart', { fontSize: "24px", color: COLORS.light, backgroundColor: COLORS.darkAccent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true })
+        .on("pointerover", () => restartButton.setStyle({ backgroundColor: COLORS.primary, color: COLORS.dark }))
+        .on("pointerout", () => restartButton.setStyle({ backgroundColor: COLORS.darkAccent, color: COLORS.light }))
+        .on("pointerdown", () => {
+            gameOverMenu.destroy();
+            background.destroy();
             restartGame(scene);
-        } else {
-            alert('Bitte gib einen Namen ein.');
-        }
-    };
-
-    const signUpButton = document.createElement('button');
-    signUpButton.textContent = 'Konto erstellen';
-    signUpButton.onclick = () => supabase.auth.signUp({/* email, password */}).then(() => alert('Check deine Emails!')); // Basic example
-
-    const signInButton = document.createElement('button');
-    signInButton.textContent = 'Anmelden';
-    signInButton.onclick = () => supabase.auth.signInWithPassword({/* email, password */}); // Basic example
-
-    gameOverContainer.appendChild(gameOverText);
-    gameOverContainer.appendChild(finalScoreText);
-    gameOverContainer.appendChild(usernameInput);
-    gameOverContainer.appendChild(saveScoreButton);
-    gameOverContainer.appendChild(signUpButton);
-    gameOverContainer.appendChild(signInButton);
-
-    document.getElementById('game-container').appendChild(gameOverContainer);
+        });
+    gameOverMenu.add(restartButton);
 
     if (soundOn) scene.sound.play("gameover");
-    scene.tweens.add({ targets: gameOverText, angle: 360, duration: 2000, ease: "Sine.easeInOut" });
+}
+
+async function showGlobalHighscores(scene, parentMenu) {
+    try {
+        // Hide the parent menu
+        parentMenu.setVisible(false);
+
+        // Fetch data
+        const { data: highscores, error } = await supabase
+            .from('highscores')
+            .select('username, score')
+            .order('score', { ascending: false })
+            .limit(10);
+
+        if (error) {
+            throw error;
+        }
+
+        // Create a container for the highscores menu
+        const highscoresMenu = scene.add.container(config.width / 2, config.height / 2);
+
+        // Back Button
+        const backButton = scene.add.text(0, 180, 'Zurück', { fontSize: "24px", color: COLORS.light, backgroundColor: COLORS.darkAccent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
+            .setOrigin(0.5)
+            .setInteractive({ useHandCursor: true })
+            .on("pointerover", () => backButton.setStyle({ backgroundColor: COLORS.primary, color: COLORS.dark }))
+            .on("pointerout", () => backButton.setStyle({ backgroundColor: COLORS.darkAccent, color: COLORS.light }))
+            .on("pointerdown", () => {
+                // Hide highscores menu and show the parent menu
+                highscoresMenu.destroy();
+                parentMenu.setVisible(true);
+            });
+        highscoresMenu.add(backButton);
+
+        // Display the highscores or a message if there are none
+        if (highscores.length > 0) {
+            let yOffset = -100;
+            highscores.forEach((entry) => {
+                const highscoreText = scene.add.text(0, yOffset, `${entry.username}: ${entry.score}`, { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5);
+                highscoresMenu.add(highscoreText);
+                yOffset += 30;
+            });
+        } else {
+            const noHighscoresText = scene.add.text(0, 0, 'Noch keine Highscores', { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5);
+            highscoresMenu.add(noHighscoresText);
+        }
+
+    } catch (error) {
+        console.error("Fehler beim Laden der globalen Highscores:", error);
+        const errorText = scene.add.text(0, 0, 'Fehler beim Laden der Highscores', { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5);
+        highscoresMenu.add(errorText);
+    }
 }
 
 async function fetchGlobalHighscores(scene) {
