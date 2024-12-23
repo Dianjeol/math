@@ -1,5 +1,3 @@
---- START OF FILE game.js ---
-
 let timerText;
 let questionText;
 let currentAnswer;
@@ -19,6 +17,7 @@ const config = {
     width: 800,
     height: 600,
     backgroundColor: "#84b6f4",
+    parent: 'game-container', // Optional, aber gut, um das Spiel in einem bestimmten Container zu platzieren
     scene: {
         preload: preload,
         create: create,
@@ -36,27 +35,27 @@ function preload() {
     );
     this.load.audio(
         "correct",
-        "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3" // Example correct sound
+        "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3"
     );
     this.load.audio(
         "wrong",
-        "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/door-knock.mp3" // Example wrong sound
+        "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/door-knock.mp3"
     );
     this.load.audio(
         "levelup",
-        "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/Blop-Mark_DiAngelo.mp3" // Example level up sound
+        "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/Blop-Mark_DiAngelo.mp3"
     );
 }
 
 function create() {
     timerText = this.add
-        .text(config.width / 2, 50, `Time: ${timeLeft}`, {
+        .text(config.width / 2, 50, `Zeit: ${timeLeft}`, {
             fontSize: "32px",
             color: "#fff",
             fontFamily: "Arial Black",
         })
         .setOrigin(0.5);
-    scoreText = this.add.text(10, 10, `Score: ${score}`, {
+    scoreText = this.add.text(10, 10, `Punkte: ${score}`, {
         fontSize: "24px",
         color: "#fff",
         fontFamily: "Arial",
@@ -81,7 +80,7 @@ function create() {
         delay: 1000,
         callback: () => {
             timeLeft--;
-            timerText.setText(`Time: ${timeLeft}`);
+            timerText.setText(`Zeit: ${timeLeft}`);
             if (timeLeft <= 0) {
                 gameOver(this);
             }
@@ -209,7 +208,7 @@ function checkAnswer(selectedAnswer, scene) {
 
     if (isCorrect) {
         score += 10;
-        scoreText.setText(`Score: ${score}`);
+        scoreText.setText(`Punkte: ${score}`);
         questionsAskedInLevel++;
 
         const highscore = localStorage.getItem("highscore") || 0;
@@ -243,7 +242,7 @@ function checkAnswer(selectedAnswer, scene) {
     } else {
         timeLeft -= 5;
         if (timeLeft < 0) timeLeft = 0;
-        timerText.setText(`Time: ${timeLeft}`);
+        timerText.setText(`Zeit: ${timeLeft}`);
 
         try {
             scene.sound.play("wrong");

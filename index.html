@@ -4,9 +4,17 @@
     <title>Mathespiel</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
     <script src="game.js"></script>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
 </head>
 <body>
     <h1>Mathespiel</h1>
     <div id="game-container"></div>
+    <script>
+        // Da Phaser das Canvas-Element selbst erstellt, ist hier kein explizites Container-Handling nötig.
+        // Der leere Container kann jedoch für zukünftige Erweiterungen nützlich sein.
+    </script>
 </body>
 </html>
