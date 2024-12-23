@@ -189,7 +189,9 @@ function createAnswerButtons(scene, answers) {
                 .setInteractive({ useHandCursor: true })
                 .on("pointerover", () => { button.setStyle({ backgroundColor: COLORS.darkAccent }); scene.tweens.add({ targets: button, scale: 1.1, duration: 100, ease: "Sine.easeInOut" }); })
                 .on("pointerout", () => { button.setStyle({ backgroundColor: buttonColor }); scene.tweens.add({ targets: button, scale: 1, duration: 100, ease: "Sine.easeInOut" }); })
-                 .on("pointerdown", () => checkAnswer(answers[buttonIndex], scene,button));
+                 .on("pointerdown", function() { // Hier der fix: Closure nutzen
+                     checkAnswer(this.text, scene, this); // this.text gibt den Wert des angeklickten Buttons wieder
+                     });
             answerButtons.push(button);
             buttonIndex++;
         }
