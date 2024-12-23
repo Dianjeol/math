@@ -47,7 +47,7 @@ function preload() {
     );
     this.load.audio(
         "gameover",
-        "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/ своих-multimedia-sound-effects-конец-игры.mp3" // Dramatischerer Ton für Spielende
+        "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/своих-multimedia-sound-effects-конец-игры.mp3" // Dramatischerer Ton für Spielende
     );
 }
 
