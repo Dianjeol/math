@@ -3,7 +3,7 @@ let questionText;
 let currentAnswer;
 let scoreText;
 let highscoreText;
-let timeLeft = 15;
+let timeLeft = 12;
 let score = 0;
 let currentLevel = 1;
 let levelText;
