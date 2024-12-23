@@ -26,6 +26,7 @@ let answerButtons = [];
 let currentTableLevel = 2;
 let soundOn = true;
 let availableQuestions = []; // Array to store questions for the current level
+let music;
 
 const config = {
     type: Phaser.AUTO,
@@ -59,6 +60,7 @@ function preload() {
     this.load.audio("wrong", "./no.mp3");
     this.load.audio("levelup", "./levelup.mp3");
     this.load.audio("gameover", "./gameover.mp3");
+    this.load.audio('music', './song.mp3');
 }
 
 function create() {
@@ -89,6 +91,10 @@ function create() {
             }
         }, loop: true
     });
+
+        // Start playing the music
+    music = this.sound.add('music', { loop: true, volume: 0.5 });
+    music.play();
 }
 
 function update() { }
@@ -191,16 +197,22 @@ function checkAnswer(selectedAnswer, scene) {
     const isCorrect = selectedAnswer === currentAnswer;
 
     if (isCorrect) {
-        // ... (rest of the code for correct answer)
+        score += 10;
+        scoreText.setText(`Punkte: ${score}`);
+        questionsAskedInLevel++;
+        if (questionsAskedInLevel >= questionsPerLevel) {
+            levelUp(scene);
+        } else {
+            generateQuestion(scene);
+        }
+        if (soundOn) scene.sound.play("correct");
     } else {
-        timeLeft -= 5;
-        if (timeLeft < 0) timeLeft = 0;
-        timerText.setText(`Zeit: ${timeLeft}`);
+          timeLeft -= 5;
+          if (timeLeft < 0) timeLeft = 0;
+          timerText.setText(`Zeit: ${timeLeft}`);
+          if (soundOn) scene.sound.play("wrong");
 
-        // Play "wrong" sound only if the answer is incorrect
-        if (soundOn) scene.sound.play("wrong");
-
-        // Highlight the incorrectly selected button
+            // Highlight the incorrectly selected button
         const wrongButton = answerButtons.find((button) => button.text === String(selectedAnswer));
         if (wrongButton) {
             scene.tweens.add({
@@ -303,6 +315,7 @@ async function gameOver(scene) {
     gameOverMenu.add(restartButton);
 
     if (soundOn) scene.sound.play("gameover");
+        music.stop();
 }
 
 async function showGlobalHighscores(scene, parentMenu) {
@@ -405,6 +418,7 @@ function restartGame(scene) {
     currentTableLevel = 2;
     initializeQuestions();
     scene.scene.restart();
+    music.play();
 }
 
 function toggleSound() {
@@ -414,4 +428,7 @@ function toggleSound() {
     if (soundButton) {
         soundButton.setText(soundOn ? '🔊' : '🔇');
     }
+    if (music) {
+      music.setMute(!soundOn);
+  }
 }
