@@ -1,4 +1,3 @@
-import Phaser from 'phaser';
 import { createClient } from '@supabase/supabase-js';
 
 const COLORS = {
