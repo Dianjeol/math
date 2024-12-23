@@ -25,6 +25,7 @@ let questionsAskedInLevel = 0;
 let answerButtons = [];
 let currentTableLevel = 2;
 let soundOn = true;
+let availableQuestions = []; // Array to store questions for the current level
 
 const config = {
     type: Phaser.AUTO,
@@ -76,6 +77,7 @@ function create() {
         .on('pointerdown', toggleSound);
 
     fetchGlobalHighscores(this);
+    initializeQuestions();
     generateQuestion(this);
 
     this.time.addEvent({ delay: 1000, callback: () => {
@@ -90,28 +92,49 @@ function create() {
 
 function update() { }
 
-function generateQuestion(scene) {
-    let num1, num2;
+function initializeQuestions() {
+    availableQuestions = [];
     let maxNum = 12;
-    let possibleAnswers = [];
 
     if (currentLevel >= 1 && currentLevel <= 10) {
-        questionsPerLevel = 7;
-        do { num1 = Phaser.Math.Between(2, maxNum - 1); num2 = currentLevel; } while ([1, 2, 10].includes(num1));
+        for (let i = 2; i <= maxNum - 1; i++) {
+            if (![1, 2, 10].includes(i)) {
+                availableQuestions.push({ num1: i, num2: currentLevel });
+            }
+        }
     } else if (currentLevel === 11) {
-        questionsPerLevel = 14;
-        do { num1 = Phaser.Math.Between(3, maxNum - 2); num2 = Phaser.Math.Between(3, maxNum - 2); } while ([1, 2, 10].includes(num1) || [1, 2, 10].includes(num2));
+        for (let i = 3; i <= maxNum - 2; i++) {
+            for (let j = 3; j <= maxNum - 2; j++) {
+                if (![1, 2, 10].includes(i) && ![1, 2, 10].includes(j)) {
+                    availableQuestions.push({ num1: i, num2: j });
+                }
+            }
+        }
     } else {
-        questionsPerLevel = 7;
-        num2 = currentTableLevel;
-        do { num1 = Phaser.Math.Between(2, maxNum - 1); } while ([1, 2, 10].includes(num1));
+        for (let i = 2; i <= maxNum - 1; i++) {
+            if (![1, 2, 10].includes(i)) {
+                availableQuestions.push({ num1: i, num2: currentTableLevel });
+            }
+        }
     }
+
+    Phaser.Utils.Array.Shuffle(availableQuestions);
+}
+
+function generateQuestion(scene) {
+    if (availableQuestions.length === 0) {
+        initializeQuestions();
+    }
+
+    const question = availableQuestions.pop();
+    const num1 = question.num1;
+    const num2 = question.num2;
 
     currentAnswer = num1 * num2;
     if (questionText) questionText.destroy();
     questionText = scene.add.text(config.width / 2, 200, `${num1} x ${num2} = ?`, { fontSize: "64px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
 
-    possibleAnswers = [currentAnswer];
+    let possibleAnswers = [currentAnswer];
     while (possibleAnswers.length < 6) {
         const wrongAnswer = Math.round(currentAnswer + Phaser.Math.Between(-10, 10));
         if (wrongAnswer > 0 && Math.abs(wrongAnswer - currentAnswer) > 0 && !possibleAnswers.includes(wrongAnswer)) {
@@ -199,6 +222,7 @@ function levelUp(scene) {
         currentTableLevel = Math.min((currentLevel - 11) + 1, 10);
     }
 
+    initializeQuestions();
     generateQuestion(scene);
 }
 
@@ -370,6 +394,7 @@ function restartGame(scene) {
     currentLevel = 1;
     questionsAskedInLevel = 0;
     currentTableLevel = 2;
+    initializeQuestions();
     scene.scene.restart();
 }
 
