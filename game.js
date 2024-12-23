@@ -1,3 +1,5 @@
+--- START OF FILE game.js ---
+
 let timerText;
 let questionText;
 let currentAnswer;
@@ -34,15 +36,15 @@ function preload() {
     );
     this.load.audio(
         "correct",
-        "https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-60424/zapsplat_multimedia_game_sound_correct_tone_loopable_63736.mp3"
+        "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3" // Example correct sound
     );
     this.load.audio(
         "wrong",
-        "https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-31754/zapsplat_multimedia_game_error_tone_001_24919.mp3"
+        "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/door-knock.mp3" // Example wrong sound
     );
     this.load.audio(
         "levelup",
-        "https://www.zapsplat.com/wp-content/uploads/2015/sound-effects-64177/zapsplat_multimedia_game_one_level_up_tone_001_75498.mp3"
+        "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/Blop-Mark_DiAngelo.mp3" // Example level up sound
     );
 }
 
