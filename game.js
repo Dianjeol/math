@@ -198,10 +198,22 @@ function createAnswerButtons(scene, answers) {
     }
 }
 function checkAnswer(selectedAnswer, scene, button) {
-    const isCorrect = selectedAnswer === currentAnswer;
+  console.log("Raw Selected Answer:", selectedAnswer);
+  console.log("Raw Current Answer:", currentAnswer);
+
+    const parsedSelectedAnswer = parseInt(selectedAnswer.trim(), 10);
+    const parsedCurrentAnswer = parseInt(currentAnswer, 10);
+
+
+   console.log("Parsed Selected Answer:", parsedSelectedAnswer);
+    console.log("Parsed Current Answer:", parsedCurrentAnswer);
+
+
+    const isCorrect = parsedSelectedAnswer === parsedCurrentAnswer;
+
 
      debugText.setText(`Selected Answer: ${selectedAnswer}, Correct Answer: ${currentAnswer}, isCorrect: ${isCorrect}`);
-
+     console.log("isCorrect:", isCorrect);
 
     if (isCorrect) {
         score += 10;
@@ -233,7 +245,6 @@ function checkAnswer(selectedAnswer, scene, button) {
         }
     }
 }
-
 
 function levelUp(scene) {
     const levelUpText = scene.add.text(config.width / 2, 300, `Level Up!`, { fontSize: "64px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
