@@ -150,30 +150,39 @@ function createAnswerButtons(scene, answers) {
     answerButtons.forEach((button) => button.destroy());
     answerButtons = [];
 
-    const buttonWidth = 180; // Increased button width
-    const spacing = 20; // Increased spacing
-    const startX = (config.width - (6 * buttonWidth + 5 * spacing)) / 2;
-    const buttonY = 550;
+    const buttonWidth = 160; // Adjusted button width
+    const spacing = 15;
+    const rows = 2;
+    const cols = 3;
+    const startX = (config.width - (cols * buttonWidth + (cols - 1) * spacing)) / 2;
+    const startY = 480; // Adjusted start Y
 
+    // Button colors using only the allowed colors
     const buttonColors = [
-        '#FF5733', // Reddish Orange
-        '#33FF57', // Bright Green
-        '#3357FF', // Bright Blue
-        '#FF33F6', // Bright Magenta
-        '#F6FF33', // Bright Yellow
-        '#33FFF6'  // Bright Cyan
+        COLORS.primary,
+        COLORS.light,
+        COLORS.primary,
+        COLORS.light,
+        COLORS.primary,
+        COLORS.light
     ];
 
-    for (let i = 0; i < 6; i++) {
-        const x = startX + i * (buttonWidth + spacing) + buttonWidth / 2;
-        const buttonColor = buttonColors[i];
-        const button = scene.add.text(x, buttonY, answers[i], { fontSize: "40px", color: COLORS.dark, backgroundColor: buttonColor, padding: { left: 25, right: 25, top: 20, bottom: 20 }, fontFamily: "sans-serif", fontWeight: 'bold' }) // Increased font size and padding
-            .setOrigin(0.5)
-            .setInteractive({ useHandCursor: true })
-            .on("pointerover", () => { button.setStyle({ backgroundColor: COLORS.primary, color: COLORS.light }); scene.tweens.add({ targets: button, scale: 1.1, duration: 100, ease: "Sine.easeInOut" }); })
-            .on("pointerout", () => { button.setStyle({ backgroundColor: buttonColor, color: COLORS.dark }); scene.tweens.add({ targets: button, scale: 1, duration: 100, ease: "Sine.easeInOut" }); })
-            .on("pointerdown", () => checkAnswer(answers[i], scene));
-        answerButtons.push(button);
+    let buttonIndex = 0;
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            const x = startX + col * (buttonWidth + spacing) + buttonWidth / 2;
+            const y = startY + row * (buttonWidth + spacing) + buttonWidth / 2; // Using buttonWidth for vertical spacing
+
+            const buttonColor = buttonColors[buttonIndex];
+            const button = scene.add.text(x, y, answers[buttonIndex], { fontSize: "32px", color: COLORS.dark, backgroundColor: buttonColor, padding: { left: 20, right: 20, top: 15, bottom: 15 }, fontFamily: "sans-serif", fontWeight: 'bold' })
+                .setOrigin(0.5)
+                .setInteractive({ useHandCursor: true })
+                .on("pointerover", () => { button.setStyle({ backgroundColor: COLORS.darkAccent }); scene.tweens.add({ targets: button, scale: 1.1, duration: 100, ease: "Sine.easeInOut" }); })
+                .on("pointerout", () => { button.setStyle({ backgroundColor: buttonColor }); scene.tweens.add({ targets: button, scale: 1, duration: 100, ease: "Sine.easeInOut" }); })
+                .on("pointerdown", () => checkAnswer(answers[buttonIndex], scene));
+            answerButtons.push(button);
+            buttonIndex++;
+        }
     }
 }
 
@@ -286,7 +295,7 @@ async function gameOver(scene) {
         .on("pointerover", () => viewHighscoresButton.setStyle({ backgroundColor: COLORS.primary, color: COLORS.dark }))
         .on("pointerout", () => viewHighscoresButton.setStyle({ backgroundColor: COLORS.darkAccent, color: COLORS.light }))
         .on("pointerdown", () => {
-            showGlobalHighscores(scene, gameOverMenu); // Function to display highscores (see below)
+            showGlobalHighscores(scene, gameOverMenu);
         });
     gameOverMenu.add(viewHighscoresButton);
 
