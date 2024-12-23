@@ -17,7 +17,7 @@ const config = {
     width: 800,
     height: 600,
     backgroundColor: "#84b6f4",
-    parent: 'game-container', // Optional, aber gut, um das Spiel in einem bestimmten Container zu platzieren
+    parent: 'game-container',
     scene: {
         preload: preload,
         create: create,
@@ -35,15 +35,19 @@ function preload() {
     );
     this.load.audio(
         "correct",
-        "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3"
+        "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/ своих-multimedia-sound-effects-верно.mp3" // Positiver Bestätigungston
     );
     this.load.audio(
         "wrong",
-        "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/door-knock.mp3"
+        "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/ своих-multimedia-sound-effects-неверно.mp3" // Kurzer Fehler- oder Ablehnungston
     );
     this.load.audio(
         "levelup",
-        "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/Blop-Mark_DiAngelo.mp3"
+        "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/ своих-multimedia-sound-effects-уровень-вверх.mp3" // Etwas festlicherer Aufstiegston
+    );
+    this.load.audio(
+        "gameover",
+        "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/ своих-multimedia-sound-effects-конец-игры.mp3" // Dramatischerer Ton für Spielende
     );
 }
 
@@ -321,6 +325,12 @@ function gameOver(scene) {
             fontFamily: "Arial Black",
         })
         .setOrigin(0.5);
+
+    try {
+        scene.sound.play("gameover");
+    } catch (e) {
+        console.error("Fehler beim Abspielen des Sounds:", e);
+    }
 
     scene.tweens.add({
         targets: gameOverText,
