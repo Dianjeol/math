@@ -2,19 +2,69 @@
 <html>
 <head>
     <title>Mathespiel</title>
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
-    <script src="game.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { margin: 0; }
-        canvas { display: block; margin: 0 auto; }
+        body {
+            margin: 0;
+            background-color: #222831;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: sans-serif;
+            color: #EEEEEE;
+        }
+        canvas { display: block; }
+        #game-container {
+            position: relative;
+        }
+        #game-over-ui {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #393E46;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+        #game-over-ui button {
+            margin: 10px 5px;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            background-color: #00ADB5;
+            color: #222831;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #game-over-ui button:hover {
+            background-color: #008FA0;
+        }
+        #username-input {
+            padding: 8px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid #00ADB5;
+            background-color: #EEEEEE;
+            color: #222831;
+        }
+        #sound-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: #EEEEEE;
+            font-size: 20px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
-    <h1> </h1>
     <div id="game-container"></div>
-    <script>
-        // Da Phaser das Canvas-Element selbst erstellt, ist hier kein explizites Container-Handling nötig.
-        // Der leere Container kann jedoch für zukünftige Erweiterungen nützlich sein.
-    </script>
+    <script type="module" src="./game.js"></script>
 </body>
 </html>
