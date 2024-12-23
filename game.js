@@ -2,7 +2,8 @@ const COLORS = {
     dark: '#222831',
     darkAccent: '#393E46',
     primary: '#00ADB5',
-    light: '#EEEEEE'
+    light: '#EEEEEE',
+    secondary: '#FF5733' // Neue Farbe
 };
 
 // Initialize Supabase client
@@ -27,7 +28,6 @@ let currentTableLevel = 2;
 let soundOn = true;
 let availableQuestions = [];
 let music;
-let debugText; // Text element for debugging
 
 const config = {
     type: Phaser.AUTO,
@@ -78,8 +78,6 @@ function create() {
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', toggleSound);
     
-    // Debug Text
-        debugText = this.add.text(10, config.height - 30, '', { fontSize: '14px', color: 'yellow', fontFamily: 'sans-serif' });
 
 
     fetchGlobalHighscores(this);
@@ -153,67 +151,54 @@ function generateQuestion(scene) {
 
     Phaser.Utils.Array.Shuffle(possibleAnswers);
     createAnswerButtons(scene, possibleAnswers);
-
-    debugText.setText(`Current Answer: ${currentAnswer}`);
 }
 
 function createAnswerButtons(scene, answers) {
     answerButtons.forEach((button) => button.destroy());
     answerButtons = [];
 
-    const buttonWidth = 130;
-    const spacing = 15;
-    const rows = 2;
-    const cols = 3;
-    const startX = (config.width - (cols * buttonWidth + (cols - 1) * spacing)) / 2;
-    const startY = 380;
+    const buttonWidth = 120;
+    const spacing = 10;
+    const startX = (config.width - (6 * buttonWidth + 5 * spacing)) / 2;
+    const startY = config.height - 100; // Position am unteren Rand
+
 
     const buttonColors = [
         COLORS.primary,
         COLORS.light,
+        COLORS.secondary,
         COLORS.primary,
         COLORS.light,
-        COLORS.primary,
-        COLORS.light
+        COLORS.secondary
     ];
 
-    let buttonIndex = 0;
-    for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-            const x = startX + col * (buttonWidth + spacing) + buttonWidth / 2;
-            const y = startY + row * (buttonWidth * 0.8 + spacing) + buttonWidth / 2;
+    for (let i = 0; i < answers.length; i++) {
+            const x = startX + i * (buttonWidth + spacing) + buttonWidth / 2;
+           const y = startY;
 
-            const buttonColor = buttonColors[buttonIndex];
-             const button = scene.add.text(x, y, answers[buttonIndex], { fontSize: "32px", color: COLORS.dark, backgroundColor: buttonColor, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
+            const buttonColor = buttonColors[i];
+            const button = scene.add.text(x, y, answers[i], { fontSize: "32px", color: COLORS.dark, backgroundColor: buttonColor, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
                 .setOrigin(0.5)
                 .setInteractive({ useHandCursor: true })
                 .on("pointerover", () => { button.setStyle({ backgroundColor: COLORS.darkAccent }); scene.tweens.add({ targets: button, scale: 1.1, duration: 100, ease: "Sine.easeInOut" }); })
                 .on("pointerout", () => { button.setStyle({ backgroundColor: buttonColor }); scene.tweens.add({ targets: button, scale: 1, duration: 100, ease: "Sine.easeInOut" }); })
-                 .on("pointerdown", function() { // Hier der fix: Closure nutzen
-                     checkAnswer(this.text, scene, this); // this.text gibt den Wert des angeklickten Buttons wieder
+                 .on("pointerdown", function() {
+                     checkAnswer(this.text, scene, this);
                      });
             answerButtons.push(button);
-            buttonIndex++;
         }
-    }
 }
+
+
 function checkAnswer(selectedAnswer, scene, button) {
-  console.log("Raw Selected Answer:", selectedAnswer);
-  console.log("Raw Current Answer:", currentAnswer);
+
 
     const parsedSelectedAnswer = parseInt(selectedAnswer.trim(), 10);
     const parsedCurrentAnswer = parseInt(currentAnswer, 10);
 
 
-   console.log("Parsed Selected Answer:", parsedSelectedAnswer);
-    console.log("Parsed Current Answer:", parsedCurrentAnswer);
-
-
     const isCorrect = parsedSelectedAnswer === parsedCurrentAnswer;
 
-
-     debugText.setText(`Selected Answer: ${selectedAnswer}, Correct Answer: ${currentAnswer}, isCorrect: ${isCorrect}`);
-     console.log("isCorrect:", isCorrect);
 
     if (isCorrect) {
         score += 10;
@@ -245,6 +230,7 @@ function checkAnswer(selectedAnswer, scene, button) {
         }
     }
 }
+
 
 function levelUp(scene) {
     const levelUpText = scene.add.text(config.width / 2, 300, `Level Up!`, { fontSize: "64px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
