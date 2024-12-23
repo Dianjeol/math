@@ -1,5 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
 const COLORS = {
     dark: '#222831',
     darkAccent: '#393E46',
