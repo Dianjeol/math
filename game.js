@@ -54,10 +54,11 @@ function preload() {
         "https://labs.phaser.io/assets/particles/flares.png",
         "https://labs.phaser.io/assets/particles/flares.json"
     );
-    this.load.audio("correct", "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/своих-multimedia-sound-effects-верно.mp3");
-    this.load.audio("wrong", "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/своих-multimedia-sound-effects-неверно.mp3");
-    this.load.audio("levelup", "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/своих-multimedia-sound-effects-уровень-вверх.mp3");
-    this.load.audio("gameover", "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/своих-multimedia-sound-effects-конец-игры.mp3");
+    // Load the new sound files
+    this.load.audio("correct", "./yes.mp3");
+    this.load.audio("wrong", "./no.mp3");
+    this.load.audio("levelup", "./levelup.mp3");
+    this.load.audio("gameover", "./gameover.mp3");
 }
 
 function create() {
@@ -132,7 +133,7 @@ function generateQuestion(scene) {
 
     currentAnswer = num1 * num2;
     if (questionText) questionText.destroy();
-    questionText = scene.add.text(config.width / 2, 200, `${num1} x ${num2} = ?`, { fontSize: "64px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
+    questionText = scene.add.text(config.width / 2, 150, `${num1} x ${num2} = ?`, { fontSize: "64px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
 
     let possibleAnswers = [currentAnswer];
     while (possibleAnswers.length < 6) {
@@ -150,12 +151,12 @@ function createAnswerButtons(scene, answers) {
     answerButtons.forEach((button) => button.destroy());
     answerButtons = [];
 
-    const buttonWidth = 160; // Adjusted button width
+    const buttonWidth = 130; // Smaller button width
     const spacing = 15;
     const rows = 2;
     const cols = 3;
     const startX = (config.width - (cols * buttonWidth + (cols - 1) * spacing)) / 2;
-    const startY = 480; // Adjusted start Y
+    const startY = 380; // Adjusted start Y to move buttons up
 
     // Button colors using only the allowed colors
     const buttonColors = [
@@ -171,10 +172,10 @@ function createAnswerButtons(scene, answers) {
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
             const x = startX + col * (buttonWidth + spacing) + buttonWidth / 2;
-            const y = startY + row * (buttonWidth + spacing) + buttonWidth / 2; // Using buttonWidth for vertical spacing
+            const y = startY + row * (buttonWidth * 0.8 + spacing) + buttonWidth / 2; // Using 80% of buttonWidth for vertical spacing
 
             const buttonColor = buttonColors[buttonIndex];
-            const button = scene.add.text(x, y, answers[buttonIndex], { fontSize: "32px", color: COLORS.dark, backgroundColor: buttonColor, padding: { left: 20, right: 20, top: 15, bottom: 15 }, fontFamily: "sans-serif", fontWeight: 'bold' })
+            const button = scene.add.text(x, y, answers[buttonIndex], { fontSize: "32px", color: COLORS.dark, backgroundColor: buttonColor, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
                 .setOrigin(0.5)
                 .setInteractive({ useHandCursor: true })
                 .on("pointerover", () => { button.setStyle({ backgroundColor: COLORS.darkAccent }); scene.tweens.add({ targets: button, scale: 1.1, duration: 100, ease: "Sine.easeInOut" }); })
