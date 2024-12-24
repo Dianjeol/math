@@ -5,7 +5,7 @@
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { margin: 0; background-color: #EAD8B1; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: sans-serif; color: #EEEEEE; }
+        body { margin: 0; background-color: #F7D59C; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: sans-serif; color: #EEEEEE; }
         canvas { display: block; }
         #game-container { position: relative; }
     </style>
@@ -13,15 +13,23 @@
 <body>
     <div id="game-container"></div>
     <script>
-        const COLORS = { dark: '#EAD8B1', darkAccent: '#001F3F', primary: '#3A6D8C', light: '#6A9AB0', secondary: '#001F3F' };
+        const COLORS = {
+            dark: '#F7D59C',          // Hellbraun
+            darkAccent: '#D2601A',  // Orange
+            primary: '#8FB9A8',     // Grün
+            light: '#F5EFE6',       // Sehr helles Beige
+            secondary: '#477E93',   // Blaugrün
+            highlight: '#FFDB58'    // Gelb (für die Hervorhebung des eigenen Eintrags)
+        };
         const SUPABASE_URL = 'https://dnrrdfapxzqpfabjxcji.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucnJkZmFweHpxcGZhYmp4Y2ppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NjMwODksImV4cCI6MjA1MDUzOTA4OX0.mzVEpUpoAH2JzKBEXRgQ_ParxBju9f97qRlQv4uR8aM';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let timeLeft = 15, score = 0, level = 1, questionsAsked = 0;
+        let timeLeft = 15, score = 0, level = 1, questionsAsked = 0, maxLevel = 30;
         let soundOn = false, musicStarted = false, isMobile = false;
         let availableQuestions = [], answerButtons = [];
-        let timerText, questionText, currentAnswer, scoreText, levelText, music, soundButton;
+        let timerText, questionText, currentAnswer, scoreText, levelText, music, soundButton, personalHighscoreText;
+        let lastQuestionAnsweredTime = 0;
 
         const config = {
             type: Phaser.AUTO,
@@ -43,14 +51,19 @@
             this.load.audio("levelup", "./levelup.mp3");
             this.load.audio("gameover", "./gameover.mp3");
             this.load.audio('music', './song.mp3');
+            this.load.audio('great', './great.mp3');
         }
 
         function create() {
             isMobile = this.sys.game.device.os.android || this.sys.game.device.os.iOS;
             timerText = this.add.text(400, 50, `Zeit: ${timeLeft}`, { fontSize: "32px", color: COLORS.light, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
             scoreText = this.add.text(10, 10, `Punkte: ${score}`, { fontSize: "24px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' });
-            levelText = this.add.text(790, 10, `Level: ${level}`, { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(1, 0);
-            soundButton = this.add.text(790, 40, 'ðŸ”‡', { fontSize: '24px', color: COLORS.light, fontFamily: 'sans-serif' }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', toggleSound.bind(this));
+            
+            let personalHighscore = localStorage.getItem('personalHighscore') || 0;
+            personalHighscoreText = this.add.text(10, 40, `Highscore: ${personalHighscore}`, { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif", fontWeight: 'bold' });
+            
+            levelText = this.add.text(790, 10, `Level: ${level} von ${maxLevel}`, { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(1, 0);
+            soundButton = this.add.text(790, 40, ' ', { fontSize: '24px', color: COLORS.light, fontFamily: 'sans-serif' }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', toggleSound.bind(this));
 
             initializeQuestions();
             generateQuestion(this);
@@ -58,8 +71,8 @@
             this.time.addEvent({ delay: 1000, callback: () => { timeLeft--; timerText.setText(`Zeit: ${timeLeft}`); if (timeLeft <= 0) { gameOver(this); } }, loop: true });
 
             music = this.sound.add('music', { loop: true, volume: 0.5 });
-            if (isMobile) { this.input.once('pointerdown', () => { if (!musicStarted) { music.play(); musicStarted = true; soundOn = true; soundButton.setText('ðŸ”Š'); } }); }
-            else { if (!musicStarted) { music.play(); musicStarted = true; soundOn = true; soundButton.setText('ðŸ”Š'); } }
+            if (isMobile) { this.input.once('pointerdown', () => { if (!musicStarted) { music.play(); musicStarted = true; soundOn = true; soundButton.setText(' '); } }); }
+            else { if (!musicStarted) { music.play(); musicStarted = true; soundOn = true; soundButton.setText(' '); } }
         }
 
         function update() { }
@@ -91,12 +104,12 @@
             const question = availableQuestions.pop();
             let operator, result;
             if (question.type === 'multiplication') { operator = 'x'; result = question.num1 * question.num2; }
-            else if (question.type === 'division') { operator = 'Ã·'; result = question.num1 / question.num2; }
+            else if (question.type === 'division') { operator = '÷'; result = question.num1 / question.num2; }
             else if (question.type === 'fraction') { operator = '/'; result = question.num1 / question.divisor; }
             currentAnswer = (question.type === 'fraction') ? result / (question.num2 / question.divisor) : result;
 
             if (questionText) questionText.destroy();
-            questionText = scene.add.text(400, 150, (question.type === 'fraction') ? `KÃ¼rze vollstÃ¤ndig:\n${question.num1} ${operator} ${question.num2}` : `${question.num1} ${operator} ${question.num2} = ?`, { fontSize: (question.type === 'fraction') ? "45px" : "64px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
+            questionText = scene.add.text(400, 150, (question.type === 'fraction') ? `Kürze vollständig:\n${question.num1} ${operator} ${question.num2}` : `${question.num1} ${operator} ${question.num2} = ?`, { fontSize: (question.type === 'fraction') ? "45px" : "64px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
 
             let possibleAnswers = [currentAnswer];
             while (possibleAnswers.length < 4) {
@@ -119,12 +132,16 @@
         function createAnswerButtons(scene, answers) {
             answerButtons.forEach(button => button.destroy());
             answerButtons = [];
-            const startX = (800 - (2 * 250 + 20)) / 2;
-            const startY = 700 - 300;
+            const buttonWidth = 150; // Breite eines Buttons
+            const spacing = 20; // Abstand zwischen den Buttons
+            const totalWidth = answers.length * buttonWidth + (answers.length - 1) * spacing; // Gesamtbreite aller Buttons
+            const startX = (800 - totalWidth) / 2; // Berechnung der Startposition X, sodass alle zentriert sind
+            const startY = 700 - 150; // Fester Y-Wert
             const buttonColors = [COLORS.primary, COLORS.secondary];
+
             for (let i = 0; i < answers.length; i++) {
-                const x = startX + (i % 2) * (250 + 20) + 250 / 2;
-                const y = startY + Math.floor(i / 2) * (80 + 20);
+                const x = startX + i * (buttonWidth + spacing);
+                const y = startY;
                 answerButtons.push(createAnswerButton(scene, answers[i], x, y, buttonColors[i % 2]));
             }
         }
@@ -132,14 +149,22 @@
         function checkAnswer(selectedAnswer, scene, button) {
             const isCorrect = parseInt(selectedAnswer) === parseInt(currentAnswer);
             if (isCorrect) {
-                score += 10;
+                const timeToAnswer = scene.time.now - lastQuestionAnsweredTime;
+                if (timeToAnswer < 3000) {
+                    score += 20;
+                    if (soundOn) scene.sound.play("great");
+                } else {
+                    score += 10;
+                    if (soundOn) scene.sound.play("correct");
+                }
+                lastQuestionAnsweredTime = scene.time.now;
+
                 scoreText.setText(`Punkte: ${score}`);
                 questionsAsked++;
                 timeLeft = 15;
                 timerText.setText(`Zeit: ${timeLeft}`);
                 if (questionsAsked >= 6) levelUp(scene);
                 else generateQuestion(scene);
-                if (soundOn) scene.sound.play("correct");
             } else {
                 timeLeft -= 5;
                 if (timeLeft < 0) timeLeft = 0;
@@ -150,14 +175,14 @@
         }
 
         function levelUp(scene) {
-            if (level === 30) { congratulations(scene); return; }
+            if (level === maxLevel) { congratulations(scene); return; }
             const levelUpText = scene.add.text(400, 300, `Level Up!`, { fontSize: "64px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
             if (soundOn) scene.sound.play("levelup");
             scene.tweens.add({ targets: levelUpText, scale: 1.5, y: 200, alpha: 0, duration: 1500, ease: "Cubic.easeOut", onComplete: () => levelUpText.destroy() });
             const emitter = scene.add.particles(400, 300, "flares", { blendMode: "ADD", lifespan: 1500, speed: { min: 100, max: 400 }, angle: { min: 0, max: 360 }, scale: { start: 1.2, end: 0 }, quantity: 50 });
             scene.time.delayedCall(1500, () => emitter.destroy());
             level++;
-            levelText.setText(`Level: ${level}`);
+            levelText.setText(`Level: ${level} von ${maxLevel}`);
             questionsAsked = 0;
             timeLeft = 15;
             initializeQuestions();
@@ -165,88 +190,133 @@
         }
 
         function congratulations(scene) {
-            const congratsText = scene.add.text(400, 300, `Herzlichen GlÃ¼ckwunsch!\nDu hast das Spiel\ndurchgespielt!`, { fontSize: "45px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold', align: 'center' }).setOrigin(0.5);
+            const congratsText = scene.add.text(400, 300, `Herzlichen Glückwunsch!\nDu hast das Spiel\ndurchgespielt!`, { fontSize: "45px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold', align: 'center' }).setOrigin(0.5);
             if (soundOn) scene.sound.play("levelup");
             scene.tweens.add({ targets: congratsText, scale: 1.5, y: 200, alpha: 0, duration: 3000, ease: "Cubic.easeOut", onComplete: () => congratsText.destroy() });
             const emitter = scene.add.particles(400, 300, "flares", { blendMode: "ADD", lifespan: 1500, speed: { min: 100, max: 400 }, angle: { min: 0, max: 360 }, scale: { start: 1.2, end: 0 }, quantity: 50 });
             scene.time.delayedCall(3000, () => emitter.destroy());
         }
 
-        async function gameOver(scene) {
-            scene.time.removeAllEvents();
-            const background = scene.add.rectangle(0, 0, 800, 700, 0x000000, 0.7).setOrigin(0);
-            const gameOverMenu = scene.add.container(400, 350);
-            const gameOverText = scene.add.text(0, -150, 'Game Over!', { fontSize: "64px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
-            const finalScoreText = scene.add.text(0, -80, `Deine Punktzahl: ${score}`, { fontSize: "32px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5);
-            const usernameInput = scene.add.dom(0, -20, 'input', `width: 200px; height: 30px; font-size: 16px; text-align: center; background-color: ${COLORS.light}; color: ${COLORS.dark}; border: 2px solid ${COLORS.primary}; border-radius: 5px;`, 'Your Name');
-            usernameInput.node.value = localStorage.getItem('username') || '';
-            const saveScoreButton = scene.add.text(0, 30, 'Speichern', { fontSize: "24px", color: COLORS.light, backgroundColor: COLORS.darkAccent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
-                .setOrigin(0.5)
-                .setInteractive({ useHandCursor: true })
-                .on("pointerover", () => saveScoreButton.setStyle({ backgroundColor: COLORS.primary, color: COLORS.dark }))
-                .on("pointerout", () => saveScoreButton.setStyle({ backgroundColor: COLORS.darkAccent, color: COLORS.light }))
-                .on("pointerdown", async () => {
-                    const username = usernameInput.node.value.trim();
-                    if (username) {
-                        localStorage.setItem('username', username);
-                        await submitScore(username, score);
-                        alert('Highscore gesendet!');
-                        gameOverMenu.destroy();
-                        background.destroy();
-                        restartGame(scene);
-                    } else {
-                        alert('Bitte gib einen Namen ein.');
-                    }
-                });
-            const viewHighscoresButton = scene.add.text(0, 80, 'Highscores', { fontSize: "24px", color: COLORS.light, backgroundColor: COLORS.darkAccent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
-                .setOrigin(0.5)
-                .setInteractive({ useHandCursor: true })
-                .on("pointerover", () => viewHighscoresButton.setStyle({ backgroundColor: COLORS.primary, color: COLORS.dark }))
-                .on("pointerout", () => viewHighscoresButton.setStyle({ backgroundColor: COLORS.darkAccent, color: COLORS.light }))
-                .on("pointerdown", () => showGlobalHighscores(scene, gameOverMenu));
-            const restartButton = scene.add.text(0, 130, 'Neustart', { fontSize: "24px", color: COLORS.light, backgroundColor: COLORS.darkAccent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
-                .setOrigin(0.5)
-                .setInteractive({ useHandCursor: true })
-                .on("pointerover", () => restartButton.setStyle({ backgroundColor: COLORS.primary, color: COLORS.dark }))
-                .on("pointerout", () => restartButton.setStyle({ backgroundColor: COLORS.darkAccent, color: COLORS.light }))
-                .on("pointerdown", () => { gameOverMenu.destroy(); background.destroy(); restartGame(scene); });
-            gameOverMenu.add([gameOverText, finalScoreText, usernameInput, saveScoreButton, viewHighscoresButton, restartButton]);
-            if (soundOn) scene.sound.play("gameover");
-            music.stop();
+async function gameOver(scene) {
+    scene.time.removeAllEvents();
+    const background = scene.add.rectangle(0, 0, 800, 700, 0x000000, 0.7).setOrigin(0);
+    const gameOverMenu = scene.add.container(400, 350);
+    const gameOverText = scene.add.text(0, -150, 'Game Over!', { fontSize: "64px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
+    const finalScoreText = scene.add.text(0, -80, `Deine Punktzahl: ${score}`, { fontSize: "32px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5);
+    let username = localStorage.getItem('username');
+    if (!username) {
+      const usernameInput = scene.add.dom(0, -20, 'input', `width: 200px; height: 30px; font-size: 16px; text-align: center; background-color: ${COLORS.light}; color: ${COLORS.dark}; border: 2px solid ${COLORS.primary}; border-radius: 5px;`, 'Your Name');
+      const saveScoreButton = scene.add.text(0, 30, 'Speichern', { fontSize: "24px", color: COLORS.light, backgroundColor: COLORS.darkAccent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
+          .setOrigin(0.5)
+          .setInteractive({ useHandCursor: true })
+          .on("pointerover", () => saveScoreButton.setStyle({ backgroundColor: COLORS.primary, color: COLORS.dark }))
+          .on("pointerout", () => saveScoreButton.setStyle({ backgroundColor: COLORS.darkAccent, color: COLORS.light }))
+          .on("pointerdown", async () => {
+              username = usernameInput.node.value.trim();
+              if (username) {
+                  localStorage.setItem('username', username);
+                  const success = await submitScore(username, score);
+                  if (success) {
+                    gameOverMenu.destroy();
+                    background.destroy();
+                    await showGlobalHighscores(scene, username, score);
+                  } else {
+                      alert('Fehler beim Senden der Highscore.');
+                  }
+              } else {
+                  alert('Bitte gib einen Namen ein.');
+              }
+          });
+      gameOverMenu.add([gameOverText, finalScoreText, usernameInput, saveScoreButton]);
+    } else {
+        const success = await submitScore(username, score);
+        if (success) {
+          gameOverMenu.destroy();
+          background.destroy();
+          await showGlobalHighscores(scene, username, score);
+        } else {
+            alert('Fehler beim Senden der Highscore.');
         }
+    }
 
-        async function showGlobalHighscores(scene, parentMenu) {
-            try {
-                parentMenu.setVisible(false);
-                const { data: highscores, error } = await supabase.from('highscores').select('username, score').order('score', { ascending: false }).limit(10);
-                if (error) throw error;
-                const highscoresMenu = scene.add.container(400, 350);
-                const backButton = scene.add.text(0, 180, 'ZurÃ¼ck', { fontSize: "24px", color: COLORS.light, backgroundColor: COLORS.darkAccent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
-                    .setOrigin(0.5)
-                    .setInteractive({ useHandCursor: true })
-                    .on("pointerover", () => backButton.setStyle({ backgroundColor: COLORS.primary, color: COLORS.dark }))
-                    .on("pointerout", () => backButton.setStyle({ backgroundColor: COLORS.darkAccent, color: COLORS.light }))
-                    .on("pointerdown", () => { highscoresMenu.destroy(); parentMenu.setVisible(true); });
-                highscoresMenu.add(backButton);
-                if (highscores.length > 0) {
-                    let yOffset = -100;
-                    highscores.forEach(entry => { highscoresMenu.add(scene.add.text(0, yOffset, `${entry.username}: ${entry.score}`, { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5)); yOffset += 30; });
-                } else {
-                    highscoresMenu.add(scene.add.text(0, 0, 'Noch keine Highscores', { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5));
+    if (soundOn) scene.sound.play("gameover");
+    music.stop();
+}
+        
+async function showGlobalHighscores(scene, username, score) {
+    try {
+        const { data: highscores, error } = await supabase.from('highscores').select('username, score').order('score', { ascending: false });
+        if (error) throw error;
+
+        const highscoresMenu = scene.add.container(400, 350);
+        const background = scene.add.rectangle(-400, -350, 800, 700, COLORS.dark, 0.8).setOrigin(0); // Hintergrund hinzufügen
+        highscoresMenu.add(background);
+        
+        const backButton = scene.add.text(0, 280, 'Neustart', { fontSize: "24px", color: COLORS.light, backgroundColor: COLORS.darkAccent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
+            .setOrigin(0.5)
+            .setInteractive({ useHandCursor: true })
+            .on("pointerover", () => backButton.setStyle({ backgroundColor: COLORS.primary, color: COLORS.dark }))
+            .on("pointerout", () => backButton.setStyle({ backgroundColor: COLORS.darkAccent, color: COLORS.light }))
+            .on("pointerdown", () => { highscoresMenu.destroy(); restartGame(scene); });
+        highscoresMenu.add(backButton);
+
+        let playerRank = -1;
+        if (username) {
+            for (let i = 0; i < highscores.length; i++) {
+                if (highscores[i].username === username && highscores[i].score === score) {
+                    playerRank = i;
+                    break;
                 }
-            } catch (error) {
-                console.error("Fehler beim Laden der globalen Highscores:", error);
-                scene.add.text(0, 0, 'Fehler beim Laden der Highscores', { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5);
             }
         }
+
+        if (highscores.length > 0) {
+            let yOffset = -180;
+            const startIndex = Math.max(0, playerRank - 2);
+            const endIndex = Math.min(highscores.length - 1, playerRank + 2);
+
+            if (playerRank === -1 && username) {
+              highscoresMenu.add(scene.add.text(0, yOffset, `Dein Name wurde nicht in den Top 100 gefunden.`, { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5));
+              yOffset += 60;
+            } else if (username) {
+              highscoresMenu.add(scene.add.text(0, yOffset, `Deine Punktzahl: ${score}`, { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5));
+              yOffset += 30;
+              highscoresMenu.add(scene.add.text(0, yOffset, `Dein Name: ${username}`, { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5));
+              yOffset += 60;
+            }
+
+            for (let i = startIndex; i <= endIndex; i++) {
+                const entry = highscores[i];
+                const isPlayer = playerRank !== -1 && i === playerRank;
+                const text = scene.add.text(0, yOffset, `${i + 1}. ${entry.username}: ${entry.score}`, {
+                    fontSize: "24px",
+                    color: isPlayer ? COLORS.highlight : COLORS.light,
+                    fontFamily: "sans-serif",
+                    fontWeight: isPlayer ? 'bold' : 'normal'
+                }).setOrigin(0.5);
+                highscoresMenu.add(text);
+                yOffset += 30;
+            }
+        } else {
+            highscoresMenu.add(scene.add.text(0, 0, 'Noch keine Highscores', { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5));
+        }
+    } catch (error) {
+        console.error("Fehler beim Laden der globalen Highscores:", error);
+        scene.add.text(0, 0, 'Fehler beim Laden der Highscores', { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5);
+    }
+}
 
         async function submitScore(username, score) {
             try {
                 const { error } = await supabase.from('highscores').insert([{ username, score }]);
                 if (error) throw error;
+                if (score > (localStorage.getItem('personalHighscore') || 0)) {
+                    localStorage.setItem('personalHighscore', score);
+                }
+                return true;
             } catch (error) {
                 console.error("Fehler beim Senden der Highscore:", error);
-                alert('Fehler beim Senden der Highscore.');
+                return false;
             }
         }
 
@@ -255,16 +325,17 @@
             timeLeft = 15;
             level = 1;
             questionsAsked = 0;
+            lastQuestionAnsweredTime = 0;
             initializeQuestions();
             scene.scene.restart();
-            if (isMobile) { musicStarted = false; soundOn = false; this.input.once('pointerdown', () => { if (!musicStarted) { music.play(); musicStarted = true; soundOn = true; soundButton.setText('ðŸ”Š'); } }); }
+            if (isMobile) { musicStarted = false; soundOn = false; this.input.once('pointerdown', () => { if (!musicStarted) { music.play(); musicStarted = true; soundOn = true; soundButton.setText(' '); } }); }
             else { music.play(); soundOn = true; }
         }
 
         function toggleSound() {
             soundOn = !soundOn;
             game.sound.setMute(!soundOn);
-            soundButton.setText(soundOn ? 'ðŸ”Š' : 'ðŸ”‡');
+            soundButton.setText(soundOn ? ' ' : ' ');
             if (music) music.setMute(!soundOn);
         }
     </script>
