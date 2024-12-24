@@ -13,37 +13,19 @@
 <body>
     <div id="game-container"></div>
     <script>
-        const COLORS = {
-            dark: '#F7D59C',          // Hellbraun
-            darkAccent: '#D2601A',  // Orange
-            primary: '#8FB9A8',     // Grün
-            light: '#F5EFE6',       // Sehr helles Beige
-            secondary: '#477E93',   // Blaugrün
-            highlight: '#FFDB58'    // Gelb (für die Hervorhebung des eigenen Eintrags)
-        };
-        const SUPABASE_URL = 'https://dnrrdfapxzqpfabjxcji.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucnJkZmFweHpxcGZhYmp4Y2ppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NjMwODksImV4cCI6MjA1MDUzOTA4OX0.mzVEpUpoAH2JzKBEXRgQ_ParxBju9f97qRlQv4uR8aM';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        let timeLeft = 15, score = 0, level = 1, questionsAsked = 0, maxLevel = 30;
-        let soundOn = false, musicStarted = false, isMobile = false;
-        let availableQuestions = [], answerButtons = [];
-        let timerText, questionText, currentAnswer, scoreText, levelText, music, soundButton, personalHighscoreText;
-        let lastQuestionAnsweredTime = 0;
-
-        const config = {
+        const C = { dark: '#F7D59C', darkAccent: '#D2601A', primary: '#8FB9A8', light: '#F5EFE6', secondary: '#477E93', highlight: '#FFDB58' };
+        const supabase = window.supabase.createClient('https://dnrrdfapxzqpfabjxcji.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucnJkZmFweHpxcGZhYmp4Y2ppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NjMwODksImV4cCI6MjA1MDUzOTA4OX0.mzVEpUpoAH2JzKBEXRgQ_ParxBju9f97qRlQv4uR8aM');
+        let t = 15, s = 0, l = 1, qA = 0, mL = 30, sO = false, mS = false, iM = false, aQ = [], aB = [], cA, laQT = 0;
+        const game = new Phaser.Game({
             type: Phaser.AUTO,
             width: 800,
             height: 700,
-            backgroundColor: COLORS.dark,
+            backgroundColor: C.dark,
             parent: 'game-container',
             scene: { preload, create, update },
             audio: { disableWebAudio: false },
             dom: { createContainer: true }
-        };
-
-        const game = new Phaser.Game(config);
-
+        });
         function preload() {
             this.load.atlas("flares", "https://labs.phaser.io/assets/particles/flares.png", "https://labs.phaser.io/assets/particles/flares.json");
             this.load.audio("correct", "./yes.mp3");
@@ -53,265 +35,222 @@
             this.load.audio('music', './song.mp3');
             this.load.audio('great', './great.mp3');
         }
-
         function create() {
-            isMobile = this.sys.game.device.os.android || this.sys.game.device.os.iOS;
-            timerText = this.add.text(400, 50, `Zeit: ${timeLeft}`, { fontSize: "32px", color: COLORS.light, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
-            scoreText = this.add.text(10, 10, `Punkte: ${score}`, { fontSize: "24px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' });
-            
-            let personalHighscore = localStorage.getItem('personalHighscore') || 0;
-            personalHighscoreText = this.add.text(10, 40, `Highscore: ${personalHighscore}`, { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif", fontWeight: 'bold' });
-            
-            levelText = this.add.text(790, 10, `Level: ${level} von ${maxLevel}`, { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(1, 0);
-            soundButton = this.add.text(790, 40, ' ', { fontSize: '24px', color: COLORS.light, fontFamily: 'sans-serif' }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', toggleSound.bind(this));
-
-            initializeQuestions();
-            generateQuestion(this);
-
-            this.time.addEvent({ delay: 1000, callback: () => { timeLeft--; timerText.setText(`Zeit: ${timeLeft}`); if (timeLeft <= 0) { gameOver(this); } }, loop: true });
-
-            music = this.sound.add('music', { loop: true, volume: 0.5 });
-            if (isMobile) { this.input.once('pointerdown', () => { if (!musicStarted) { music.play(); musicStarted = true; soundOn = true; soundButton.setText(' '); } }); }
-            else { if (!musicStarted) { music.play(); musicStarted = true; soundOn = true; soundButton.setText(' '); } }
+            iM = this.sys.game.device.os.android || this.sys.game.device.os.iOS;
+            this.tT = this.add.text(400, 50, `Zeit: ${t}`, { fontSize: "32px", color: C.light, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
+            this.sT = this.add.text(10, 10, `Punkte: ${s}`, { fontSize: "24px", color: C.primary, fontFamily: "sans-serif", fontWeight: 'bold' });
+            this.phT = this.add.text(10, 40, `Highscore: ${localStorage.getItem('personalHighscore') || 0}`, { fontSize: "24px", color: C.light, fontFamily: "sans-serif", fontWeight: 'bold' });
+            this.lT = this.add.text(790, 10, `Level: ${l} von ${mL}`, { fontSize: "24px", color: C.light, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(1, 0);
+            this.sB = this.add.text(790, 40, ' ', { fontSize: '24px', color: C.light, fontFamily: 'sans-serif' }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', tS.bind(this));
+            iQ();
+            gQ(this);
+            this.time.addEvent({ delay: 1000, callback: () => { t--; this.tT.setText(`Zeit: ${t}`); if (t <= 0) { gO(this); } }, loop: true });
+            this.m = this.sound.add('music', { loop: true, volume: 0.5 });
+            if (iM) { this.input.once('pointerdown', () => { if (!mS) { this.m.play(); mS = true; sO = true; this.sB.setText(' '); } }); }
+            else { if (!mS) { this.m.play(); mS = true; sO = true; this.sB.setText(' '); } }
         }
-
         function update() { }
-
-        function initializeQuestions() {
-            availableQuestions = [];
-            const numbersToMultiply = [3, 4, 6, 7, 8, 9];
-            if (level === 1) availableQuestions = numbersToMultiply.slice(1).map(num => ({ num1: num, num2: num, type: 'multiplication' }));
-            else if (level === 11) availableQuestions = numbersToMultiply.slice(4).map(num => ({ num1: num, num2: num, type: 'multiplication' }));
-            else if (level <= 10) availableQuestions = numbersToMultiply.map(num => ({ num1: num, num2: level, type: 'multiplication' }));
-            else if (level <= 21) {
-                const divisor = level - 10;
-                availableQuestions = numbersToMultiply.map(num => ({ num1: num * divisor, num2: divisor, type: 'division' }));
-            } else if (level <= 30) {
-                const divisor = level - 20;
+        function iQ() {
+            aQ = [];
+            const nTM = [3, 4, 6, 7, 8, 9];
+            if (l === 1) aQ = nTM.slice(1).map(n => ({ n1: n, n2: n, t: 'm' }));
+            else if (l === 11) aQ = nTM.slice(4).map(n => ({ n1: n, n2: n, t: 'm' }));
+            else if (l <= 10) aQ = nTM.map(n => ({ n1: n, n2: l, t: 'm' }));
+            else if (l <= 21) {
+                const d = l - 10;
+                aQ = nTM.map(n => ({ n1: n * d, n2: d, t: 'd' }));
+            } else if (l <= 30) {
+                const d = l - 20;
                 for (let i = 0; i < 6; i++) {
-                    let numerator = Phaser.Math.Between(divisor, 50);
-                    numerator = Math.round(numerator / divisor) * divisor;
-                    availableQuestions.push({ num1: numerator, num2: Phaser.Math.Between(2, 10) * divisor, type: 'fraction', divisor });
+                    let n = Phaser.Math.Between(d, 50);
+                    n = Math.round(n / d) * d;
+                    aQ.push({ n1: n, n2: Phaser.Math.Between(2, 10) * d, t: 'f', d });
                 }
             }
-            Phaser.Utils.Array.Shuffle(availableQuestions);
+            Phaser.Utils.Array.Shuffle(aQ);
         }
-
-        function generateQuestion(scene) {
-            if (availableQuestions.length === 0 && level !== 31) initializeQuestions();
-            if (level === 31) { congratulations(scene); return; }
-
-            const question = availableQuestions.pop();
-            let operator, result;
-            if (question.type === 'multiplication') { operator = 'x'; result = question.num1 * question.num2; }
-            else if (question.type === 'division') { operator = '÷'; result = question.num1 / question.num2; }
-            else if (question.type === 'fraction') { operator = '/'; result = question.num1 / question.divisor; }
-            currentAnswer = (question.type === 'fraction') ? result / (question.num2 / question.divisor) : result;
-
-            if (questionText) questionText.destroy();
-            questionText = scene.add.text(400, 150, (question.type === 'fraction') ? `Kürze vollständig:\n${question.num1} ${operator} ${question.num2}` : `${question.num1} ${operator} ${question.num2} = ?`, { fontSize: (question.type === 'fraction') ? "45px" : "64px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
-
-            let possibleAnswers = [currentAnswer];
-            while (possibleAnswers.length < 4) {
-                const wrongAnswer = Phaser.Math.Between(currentAnswer - 5 > 0 ? currentAnswer - 5 : 1, currentAnswer + 5);
-                if (wrongAnswer !== currentAnswer && !possibleAnswers.includes(wrongAnswer)) possibleAnswers.push(wrongAnswer);
+        function gQ(s) {
+            if (aQ.length === 0 && l !== 31) iQ();
+            if (l === 31) { cO(s); return; }
+            const q = aQ.pop();
+            let o, r;
+            if (q.t === 'm') { o = 'x'; r = q.n1 * q.n2; }
+            else if (q.t === 'd') { o = '÷'; r = q.n1 / q.n2; }
+            else if (q.t === 'f') { o = '/'; r = q.n1 / q.d; }
+            cA = (q.t === 'f') ? r / (q.n2 / q.d) : r;
+            if (this.qT) this.qT.destroy();
+            this.qT = s.add.text(400, 150, (q.t === 'f') ? `Kürze:\n${q.n1} ${o} ${q.n2}` : `${q.n1} ${o} ${q.n2} = ?`, { fontSize: (q.t === 'f') ? "45px" : "64px", color: C.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
+            let pA = [cA];
+            while (pA.length < 4) {
+                const wA = Phaser.Math.Between(cA - 5 > 0 ? cA - 5 : 1, cA + 5);
+                if (wA !== cA && !pA.includes(wA)) pA.push(wA);
             }
-            Phaser.Utils.Array.Shuffle(possibleAnswers);
-            createAnswerButtons(scene, possibleAnswers);
+            Phaser.Utils.Array.Shuffle(pA);
+            cAButtons(s, pA);
         }
-
-        function createAnswerButton(scene, answer, x, y, color) {
-            return scene.add.text(x, y, answer, { fontSize: "40px", color: COLORS.dark, backgroundColor: color, padding: { left: 30, right: 30, top: 20, bottom: 20 }, fontFamily: "sans-serif", fontWeight: 'bold' })
+        function cAButton(s, a, x, y, c) {
+            return s.add.text(x, y, a, { fontSize: "40px", color: C.dark, backgroundColor: c, padding: { left: 30, right: 30, top: 20, bottom: 20 }, fontFamily: "sans-serif", fontWeight: 'bold' })
                 .setOrigin(0.5)
                 .setInteractive({ useHandCursor: true })
-                .on("pointerover", () => { button.setStyle({ backgroundColor: COLORS.darkAccent }); scene.tweens.add({ targets: button, scale: 1.1, duration: 100, ease: "Sine.easeInOut" }); })
-                .on("pointerout", () => { button.setStyle({ backgroundColor: color }); scene.tweens.add({ targets: button, scale: 1, duration: 100, ease: "Sine.easeInOut" }); })
-                .on("pointerdown", function () { checkAnswer(this.text, scene, this); });
+                .on("pointerover", () => { b.setStyle({ backgroundColor: C.darkAccent }); s.tweens.add({ targets: b, scale: 1.1, duration: 100, ease: "Sine.easeInOut" }); })
+                .on("pointerout", () => { b.setStyle({ backgroundColor: c }); s.tweens.add({ targets: b, scale: 1, duration: 100, ease: "Sine.easeInOut" }); })
+                .on("pointerdown", function () { cAsw(this.text, s, this); });
         }
-
-        function createAnswerButtons(scene, answers) {
-            answerButtons.forEach(button => button.destroy());
-            answerButtons = [];
-            const buttonWidth = 150; // Breite eines Buttons
-            const spacing = 20; // Abstand zwischen den Buttons
-            const totalWidth = answers.length * buttonWidth + (answers.length - 1) * spacing; // Gesamtbreite aller Buttons
-            const startX = (800 - totalWidth) / 2; // Berechnung der Startposition X, sodass alle zentriert sind
-            const startY = 700 - 150; // Fester Y-Wert
-            const buttonColors = [COLORS.primary, COLORS.secondary];
-
-            for (let i = 0; i < answers.length; i++) {
-                const x = startX + i * (buttonWidth + spacing);
-                const y = startY;
-                answerButtons.push(createAnswerButton(scene, answers[i], x, y, buttonColors[i % 2]));
+        function cAButtons(s, a) {
+            aB.forEach(b => b.destroy());
+            aB = [];
+            const bW = 150, sp = 20, tW = a.length * bW + (a.length - 1) * sp, sX = (800 - tW) / 2, sY = 700 - 150, bC = [C.primary, C.secondary];
+            for (let i = 0; i < a.length; i++) {
+                const x = sX + i * (bW + sp);
+                aB.push(cAButton(s, a[i], x, sY, bC[i % 2]));
             }
         }
-
-        function checkAnswer(selectedAnswer, scene, button) {
-            const isCorrect = parseInt(selectedAnswer) === parseInt(currentAnswer);
-            if (isCorrect) {
-                const timeToAnswer = scene.time.now - lastQuestionAnsweredTime;
-                if (timeToAnswer < 3000) {
-                    score += 20;
-                    if (soundOn) scene.sound.play("great");
-                } else {
-                    score += 10;
-                    if (soundOn) scene.sound.play("correct");
-                }
-                lastQuestionAnsweredTime = scene.time.now;
-
-                scoreText.setText(`Punkte: ${score}`);
-                questionsAsked++;
-                timeLeft = 15;
-                timerText.setText(`Zeit: ${timeLeft}`);
-                if (questionsAsked >= 6) levelUp(scene);
-                else generateQuestion(scene);
+        function cAsw(sA, s, b) {
+            const iC = parseInt(sA) === parseInt(cA);
+            if (iC) {
+                const tA = s.time.now - laQT;
+                if (tA < 3000) { s += 20; if (sO) s.sound.play("great"); }
+                else { s += 10; if (sO) s.sound.play("correct"); }
+                laQT = s.time.now;
+                this.sT.setText(`Punkte: ${s}`);
+                qA++;
+                t = 15;
+                this.tT.setText(`Zeit: ${t}`);
+                if (qA >= 6) lU(s);
+                else gQ(s);
             } else {
-                timeLeft -= 5;
-                if (timeLeft < 0) timeLeft = 0;
-                timerText.setText(`Zeit: ${timeLeft}`);
-                if (soundOn) scene.sound.play("wrong");
-                if (button) scene.tweens.add({ targets: button, backgroundColor: { from: '#ff4d4d', to: COLORS.darkAccent }, duration: 250, ease: "Linear", yoyo: true });
+                t -= 5;
+                if (t < 0) t = 0;
+                this.tT.setText(`Zeit: ${t}`);
+                if (sO) s.sound.play("wrong");
+                if (b) s.tweens.add({ targets: b, backgroundColor: { from: '#ff4d4d', to: C.darkAccent }, duration: 250, ease: "Linear", yoyo: true });
             }
         }
-
-        function levelUp(scene) {
-            if (level === maxLevel) { congratulations(scene); return; }
-            const levelUpText = scene.add.text(400, 300, `Level Up!`, { fontSize: "64px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
-            if (soundOn) scene.sound.play("levelup");
-            scene.tweens.add({ targets: levelUpText, scale: 1.5, y: 200, alpha: 0, duration: 1500, ease: "Cubic.easeOut", onComplete: () => levelUpText.destroy() });
-            const emitter = scene.add.particles(400, 300, "flares", { blendMode: "ADD", lifespan: 1500, speed: { min: 100, max: 400 }, angle: { min: 0, max: 360 }, scale: { start: 1.2, end: 0 }, quantity: 50 });
-            scene.time.delayedCall(1500, () => emitter.destroy());
-            level++;
-            levelText.setText(`Level: ${level} von ${maxLevel}`);
-            questionsAsked = 0;
-            timeLeft = 15;
-            initializeQuestions();
-            generateQuestion(scene);
+        function lU(s) {
+            if (l === mL) { cO(s); return; }
+            const lT = s.add.text(400, 300, `Level Up!`, { fontSize: "64px", color: C.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
+            if (sO) s.sound.play("levelup");
+            s.tweens.add({ targets: lT, scale: 1.5, y: 200, alpha: 0, duration: 1500, ease: "Cubic.easeOut", onComplete: () => lT.destroy() });
+            const e = s.add.particles(400, 300, "flares", { blendMode: "ADD", lifespan: 1500, speed: { min: 100, max: 400 }, angle: { min: 0, max: 360 }, scale: { start: 1.2, end: 0 }, quantity: 50 });
+            s.time.delayedCall(1500, () => e.destroy());
+            l++;
+            this.lT.setText(`Level: ${l} von ${mL}`);
+            qA = 0;
+            t = 15;
+            iQ();
+            gQ(s);
         }
-
-        function congratulations(scene) {
-            const congratsText = scene.add.text(400, 300, `Herzlichen Glückwunsch!\nDu hast das Spiel\ndurchgespielt!`, { fontSize: "45px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold', align: 'center' }).setOrigin(0.5);
-            if (soundOn) scene.sound.play("levelup");
-            scene.tweens.add({ targets: congratsText, scale: 1.5, y: 200, alpha: 0, duration: 3000, ease: "Cubic.easeOut", onComplete: () => congratsText.destroy() });
-            const emitter = scene.add.particles(400, 300, "flares", { blendMode: "ADD", lifespan: 1500, speed: { min: 100, max: 400 }, angle: { min: 0, max: 360 }, scale: { start: 1.2, end: 0 }, quantity: 50 });
-            scene.time.delayedCall(3000, () => emitter.destroy());
+        function cO(s) {
+            const cT = s.add.text(400, 300, `Gratulation!\nSpiel geschafft!`, { fontSize: "45px", color: C.primary, fontFamily: "sans-serif", fontWeight: 'bold', align: 'center' }).setOrigin(0.5);
+            if (sO) s.sound.play("levelup");
+            s.tweens.add({ targets: cT, scale: 1.5, y: 200, alpha: 0, duration: 3000, ease: "Cubic.easeOut", onComplete: () => cT.destroy() });
+            const e = s.add.particles(400, 300, "flares", { blendMode: "ADD", lifespan: 1500, speed: { min: 100, max: 400 }, angle: { min: 0, max: 360 }, scale: { start: 1.2, end: 0 }, quantity: 50 });
+            s.time.delayedCall(3000, () => e.destroy());
         }
-
-async function gameOver(scene) {
-    scene.time.removeAllEvents();
-    const background = scene.add.rectangle(0, 0, 800, 700, 0x000000, 0.7).setOrigin(0);
-    const gameOverMenu = scene.add.container(400, 350);
-    const gameOverText = scene.add.text(0, -150, 'Game Over!', { fontSize: "64px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
-    const finalScoreText = scene.add.text(0, -80, `Deine Punktzahl: ${score}`, { fontSize: "32px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5);
-    let username = localStorage.getItem('username');
-    if (!username) {
-      const usernameInput = scene.add.dom(0, -20, 'input', `width: 200px; height: 30px; font-size: 16px; text-align: center; background-color: ${COLORS.light}; color: ${COLORS.dark}; border: 2px solid ${COLORS.primary}; border-radius: 5px;`, 'Your Name');
-      const saveScoreButton = scene.add.text(0, 30, 'Speichern', { fontSize: "24px", color: COLORS.light, backgroundColor: COLORS.darkAccent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
-          .setOrigin(0.5)
-          .setInteractive({ useHandCursor: true })
-          .on("pointerover", () => saveScoreButton.setStyle({ backgroundColor: COLORS.primary, color: COLORS.dark }))
-          .on("pointerout", () => saveScoreButton.setStyle({ backgroundColor: COLORS.darkAccent, color: COLORS.light }))
-          .on("pointerdown", async () => {
-              username = usernameInput.node.value.trim();
-              if (username) {
-                  localStorage.setItem('username', username);
-                  const success = await submitScore(username, score);
-                  if (success) {
-                    gameOverMenu.destroy();
-                    background.destroy();
-                    await showGlobalHighscores(scene, username, score);
-                  } else {
-                      alert('Fehler beim Senden der Highscore.');
-                  }
+        async function gO(s) {
+          s.time.removeAllEvents();
+          const bg = s.add.rectangle(0, 0, 800, 700, 0x000000, 0.7).setOrigin(0);
+          const gOM = s.add.container(400, 350);
+          const gOT = s.add.text(0, -150, 'Game Over!', { fontSize: "64px", color: C.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
+          const fST = s.add.text(0, -80, `Punkte: ${s}`, { fontSize: "32px", color: C.light, fontFamily: "sans-serif" }).setOrigin(0.5);
+          let u = localStorage.getItem('username');
+          if (!u) {
+            const uI = s.add.dom(0, -20, 'input', `width: 200px; height: 30px; font-size: 16px; text-align: center; background-color: ${C.light}; color: ${C.dark}; border: 2px solid ${C.primary}; border-radius: 5px;`, 'Name');
+            const sSB = s.add.text(0, 30, 'Speichern', { fontSize: "24px", color: C.light, backgroundColor: C.darkAccent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
+                .setOrigin(0.5)
+                .setInteractive({ useHandCursor: true })
+                .on("pointerover", () => sSB.setStyle({ backgroundColor: C.primary, color: C.dark }))
+                .on("pointerout", () => sSB.setStyle({ backgroundColor: C.darkAccent, color: C.light }))
+                .on("pointerdown", async () => {
+                    u = uI.node.value.trim();
+                    if (u) {
+                        localStorage.setItem('username', u);
+                        if (await sS(u, s)) {
+                            gOM.destroy();
+                            bg.destroy();
+                            await sGHS(s, u, s);
+                        } else {
+                            alert('Fehler!');
+                        }
+                    } else {
+                        alert('Name eingeben!');
+                    }
+                });
+            gOM.add([gOT, fST, uI, sSB]);
+          } else {
+              if (await sS(u, s)) {
+                gOM.destroy();
+                bg.destroy();
+                await sGHS(s, u, s);
               } else {
-                  alert('Bitte gib einen Namen ein.');
+                  alert('Fehler!');
               }
-          });
-      gameOverMenu.add([gameOverText, finalScoreText, usernameInput, saveScoreButton]);
-    } else {
-        const success = await submitScore(username, score);
-        if (success) {
-          gameOverMenu.destroy();
-          background.destroy();
-          await showGlobalHighscores(scene, username, score);
-        } else {
-            alert('Fehler beim Senden der Highscore.');
+          }
+          if (sO) s.sound.play("gameover");
+          this.m.stop();
         }
-    }
-
-    if (soundOn) scene.sound.play("gameover");
-    music.stop();
-}
-        
-async function showGlobalHighscores(scene, username, score) {
-    try {
-        const { data: highscores, error } = await supabase.from('highscores').select('username, score').order('score', { ascending: false });
-        if (error) throw error;
-
-        const highscoresMenu = scene.add.container(400, 350);
-        const background = scene.add.rectangle(-400, -350, 800, 700, COLORS.dark, 0.8).setOrigin(0); // Hintergrund hinzufügen
-        highscoresMenu.add(background);
-        
-        const backButton = scene.add.text(0, 280, 'Neustart', { fontSize: "24px", color: COLORS.light, backgroundColor: COLORS.darkAccent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
-            .setOrigin(0.5)
-            .setInteractive({ useHandCursor: true })
-            .on("pointerover", () => backButton.setStyle({ backgroundColor: COLORS.primary, color: COLORS.dark }))
-            .on("pointerout", () => backButton.setStyle({ backgroundColor: COLORS.darkAccent, color: COLORS.light }))
-            .on("pointerdown", () => { highscoresMenu.destroy(); restartGame(scene); });
-        highscoresMenu.add(backButton);
-
-        let playerRank = -1;
-        if (username) {
-            for (let i = 0; i < highscores.length; i++) {
-                if (highscores[i].username === username && highscores[i].score === score) {
-                    playerRank = i;
-                    break;
-                }
-            }
-        }
-
-        if (highscores.length > 0) {
-            let yOffset = -180;
-            const startIndex = Math.max(0, playerRank - 2);
-            const endIndex = Math.min(highscores.length - 1, playerRank + 2);
-
-            if (playerRank === -1 && username) {
-              highscoresMenu.add(scene.add.text(0, yOffset, `Dein Name wurde nicht in den Top 100 gefunden.`, { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5));
-              yOffset += 60;
-            } else if (username) {
-              highscoresMenu.add(scene.add.text(0, yOffset, `Deine Punktzahl: ${score}`, { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5));
-              yOffset += 30;
-              highscoresMenu.add(scene.add.text(0, yOffset, `Dein Name: ${username}`, { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5));
-              yOffset += 60;
-            }
-
-            for (let i = startIndex; i <= endIndex; i++) {
-                const entry = highscores[i];
-                const isPlayer = playerRank !== -1 && i === playerRank;
-                const text = scene.add.text(0, yOffset, `${i + 1}. ${entry.username}: ${entry.score}`, {
-                    fontSize: "24px",
-                    color: isPlayer ? COLORS.highlight : COLORS.light,
-                    fontFamily: "sans-serif",
-                    fontWeight: isPlayer ? 'bold' : 'normal'
-                }).setOrigin(0.5);
-                highscoresMenu.add(text);
-                yOffset += 30;
-            }
-        } else {
-            highscoresMenu.add(scene.add.text(0, 0, 'Noch keine Highscores', { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5));
-        }
-    } catch (error) {
-        console.error("Fehler beim Laden der globalen Highscores:", error);
-        scene.add.text(0, 0, 'Fehler beim Laden der Highscores', { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif" }).setOrigin(0.5);
-    }
-}
-
-        async function submitScore(username, score) {
+        async function sGHS(s, u, score) {
             try {
-                const { error } = await supabase.from('highscores').insert([{ username, score }]);
+                const { data: hS, error } = await supabase.from('highscores').select('username, score').order('score', { ascending: false });
                 if (error) throw error;
-                if (score > (localStorage.getItem('personalHighscore') || 0)) {
-                    localStorage.setItem('personalHighscore', score);
+                const hSM = s.add.container(400, 350);
+                const bg = s.add.rectangle(-400, -350, 800, 700, C.dark, 0.8).setOrigin(0);
+                hSM.add(bg);
+                const rB = s.add.text(0, 280, 'Neustart', { fontSize: "24px", color: C.light, backgroundColor: C.darkAccent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
+                    .setOrigin(0.5)
+                    .setInteractive({ useHandCursor: true })
+                    .on("pointerover", () => rB.setStyle({ backgroundColor: C.primary, color: C.dark }))
+                    .on("pointerout", () => rB.setStyle({ backgroundColor: C.darkAccent, color: C.light }))
+                    .on("pointerdown", () => { hSM.destroy(); rG(s); });
+                hSM.add(rB);
+                let pR = -1;
+                if (u) {
+                    for (let i = 0; i < hS.length; i++) {
+                        if (hS[i].username === u && hS[i].score === score) {
+                            pR = i;
+                            break;
+                        }
+                    }
+                }
+                if (hS.length > 0) {
+                    let yO = -180;
+                    const sI = Math.max(0, pR - 2);
+                    const eI = Math.min(hS.length - 1, pR + 2);
+                    if (pR === -1 && u) {
+                      hSM.add(s.add.text(0, yO, `Dein Name nicht in den Top 100.`, { fontSize: "24px", color: C.light, fontFamily: "sans-serif" }).setOrigin(0.5));
+                      yO += 60;
+                    } else if (u) {
+                      hSM.add(s.add.text(0, yO, `Deine Punktzahl: ${score}`, { fontSize: "24px", color: C.light, fontFamily: "sans-serif" }).setOrigin(0.5));
+                      yO += 30;
+                      hSM.add(s.add.text(0, yO, `Dein Name: ${u}`, { fontSize: "24px", color: C.light, fontFamily: "sans-serif" }).setOrigin(0.5));
+                      yO += 60;
+                    }
+                    for (let i = sI; i <= eI; i++) {
+                        const e = hS[i];
+                        const isP = pR !== -1 && i === pR;
+                        const t = s.add.text(0, yO, `${i + 1}. ${e.username}: ${e.score}`, {
+                            fontSize: "24px",
+                            color: isP ? C.highlight : C.light,
+                            fontFamily: "sans-serif",
+                            fontWeight: isP ? 'bold' : 'normal'
+                        }).setOrigin(0.5);
+                        hSM.add(t);
+                        yO += 30;
+                    }
+                } else {
+                    hSM.add(s.add.text(0, 0, 'Noch keine Highscores', { fontSize: "24px", color: C.light, fontFamily: "sans-serif" }).setOrigin(0.5));
+                }
+            } catch (error) {
+                console.error("Fehler beim Laden der Highscores:", error);
+                s.add.text(0, 0, 'Fehler beim Laden der Highscores', { fontSize: "24px", color: C.light, fontFamily: "sans-serif" }).setOrigin(0.5);
+            }
+        }
+        async function sS(u, s) {
+            try {
+                const { error } = await supabase.from('highscores').insert([{ username: u, score: s }]);
+                if (error) throw error;
+                if (s > (localStorage.getItem('personalHighscore') || 0)) {
+                    localStorage.setItem('personalHighscore', s);
                 }
                 return true;
             } catch (error) {
@@ -319,24 +258,22 @@ async function showGlobalHighscores(scene, username, score) {
                 return false;
             }
         }
-
-        function restartGame(scene) {
-            score = 0;
-            timeLeft = 15;
-            level = 1;
-            questionsAsked = 0;
-            lastQuestionAnsweredTime = 0;
-            initializeQuestions();
-            scene.scene.restart();
-            if (isMobile) { musicStarted = false; soundOn = false; this.input.once('pointerdown', () => { if (!musicStarted) { music.play(); musicStarted = true; soundOn = true; soundButton.setText(' '); } }); }
-            else { music.play(); soundOn = true; }
+        function rG(s) {
+            s = 0;
+            t = 15;
+            l = 1;
+            qA = 0;
+            laQT = 0;
+            iQ();
+            s.scene.restart();
+            if (iM) { mS = false; sO = false; this.input.once('pointerdown', () => { if (!mS) { this.m.play(); mS = true; sO = true; this.sB.setText(' '); } }); }
+            else { this.m.play(); sO = true; }
         }
-
-        function toggleSound() {
-            soundOn = !soundOn;
-            game.sound.setMute(!soundOn);
-            soundButton.setText(soundOn ? ' ' : ' ');
-            if (music) music.setMute(!soundOn);
+        function tS() {
+            sO = !sO;
+            game.sound.setMute(!sO);
+            this.sB.setText(sO ? ' ' : ' ');
+            if (this.m) this.m.setMute(!sO);
         }
     </script>
 </body>
