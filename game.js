@@ -1,9 +1,9 @@
 const COLORS = {
     dark: '#222831',
-    darkAccent: '#393E46',
-    primary: '#00ADB5',
-    light: '#EEEEEE',
-    secondary: '#FF5733'
+    darkAccent: '#F5EEE6',
+    primary: '#FFF8E3',
+    light: '#E6A4B4',
+    secondary: '#F3D7CA'
 };
 
 // Initialize Supabase client
