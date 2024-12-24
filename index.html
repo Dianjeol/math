@@ -68,7 +68,7 @@
             levelText = this.add.text(790, 10, `Level: ${level} von ${maxLevel}`, { fontSize: "24px", color: C.light, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(1, 0);
             soundButton = this.add.text(790, 70, soundOn ? 'Ton: AN' : 'Ton: AUS', { fontSize: '24px', color: C.light, fontFamily: 'sans-serif' }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', toggleSound.bind(this));
 
-            nextLevelButton = this.add.text(790, 100, 'Nächstes Level', { fontSize: '24px', color: C.light, fontFamily: 'sans-serif' }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+            nextLevelButton = this.add.text(790, 100, 'NÃ¤chstes Level', { fontSize: '24px', color: C.light, fontFamily: 'sans-serif' }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => {
                 if (level < maxLevel) {
                     levelUp(this);
                 }
@@ -128,12 +128,12 @@
             const question = availableQuestions.pop();
             let operator, result;
             if (question.type === 'multiplication') { operator = 'x'; result = question.num1 * question.num2; }
-            else if (question.type === 'division') { operator = '÷'; result = question.num1 / question.num2; }
+            else if (question.type === 'division') { operator = ':'; result = question.num1 / question.num2; }
             else if (question.type === 'fraction') { operator = '/'; result = question.num1 / question.divisor; }
             currentAnswer = (question.type === 'fraction') ? result / (question.num2 / question.divisor) : result;
 
             if (questionText) questionText.destroy();
-            questionText = scene.add.text(400, 150, (question.type === 'fraction') ? `Kürze vollständig:\n${question.num1} ${operator} ${question.num2}` : `${question.num1} ${operator} ${question.num2} = ?`, { fontSize: (question.type === 'fraction') ? "45px" : "64px", color: C.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
+            questionText = scene.add.text(400, 150, (question.type === 'fraction') ? `KÃ¼rze vollstÃ¤ndig:\n${question.num1} ${operator} ${question.num2}` : `${question.num1} ${operator} ${question.num2} = ?`, { fontSize: (question.type === 'fraction') ? "45px" : "64px", color: C.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
 
             let possibleAnswers = [currentAnswer];
             while (possibleAnswers.length < 4) {
@@ -158,9 +158,9 @@
           answerButtons = [];
       
           const buttonContainer = scene.add.container(0, 0);
-          const buttonWidth = 150;
+          const buttonWidth = 180;
           const spacing = 20;
-          const buttonColors = [C.primary, C.secondary];
+          const buttonColors = [C.accent, C.accent];
       
           for (let i = 0; i < answers.length; i++) {
               const x = i * (buttonWidth + spacing);
@@ -218,7 +218,7 @@
         }
 
         function congratulations(scene) {
-            const congratsText = scene.add.text(400, 300, `Herzlichen Glückwunsch!\nDu hast das Spiel\ndurchgespielt!`, { fontSize: "45px", color: C.primary, fontFamily: "sans-serif", fontWeight: 'bold', align: 'center' }).setOrigin(0.5);
+            const congratsText = scene.add.text(400, 300, `Herzlichen GlÃ¼ckwunsch!\nDu hast das Spiel\ndurchgespielt!`, { fontSize: "45px", color: C.primary, fontFamily: "sans-serif", fontWeight: 'bold', align: 'center' }).setOrigin(0.5);
             if (soundOn) scene.sound.play("levelup");
             scene.tweens.add({ targets: congratsText, scale: 1.5, y: 200, alpha: 0, duration: 3000, ease: "Cubic.easeOut", onComplete: () => congratsText.destroy() });
             const emitter = scene.add.particles(400, 300, "flares", { blendMode: "ADD", lifespan: 1500, speed: { min: 100, max: 400 }, angle: { min: 0, max: 360 }, scale: { start: 1.2, end: 0 }, quantity: 50 });
@@ -277,7 +277,7 @@
                 if (error) throw error;
         
                 const highscoresMenu = scene.add.container(400, 350);
-                const background = scene.add.rectangle(-400, -350, 800, 700, C.dark, 0.8).setOrigin(0); // Hintergrund hinzufügen
+                const background = scene.add.rectangle(-400, -350, 800, 700, C.dark, 0.8).setOrigin(0); // Hintergrund hinzufÃ¼gen
                 highscoresMenu.add(background);
                 
                 const backButton = scene.add.text(0, 280, 'Neustart', { fontSize: "24px", color: C.light, backgroundColor: C.accent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
