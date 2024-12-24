@@ -25,9 +25,11 @@ let questionsPerLevel = 7;
 let questionsAskedInLevel = 0;
 let answerButtons = [];
 let currentTableLevel = 2;
-let soundOn = true;
+let soundOn = false;
 let availableQuestions = [];
 let music;
+let musicStarted = false;
+let isMobile = false;
 
 const config = {
     type: Phaser.AUTO,
@@ -41,7 +43,7 @@ const config = {
         update: update,
     },
     audio: {
-        disableWebAudio: true
+        disableWebAudio: false
     },
     dom: {
         createContainer: true
@@ -65,20 +67,21 @@ function preload() {
 
 function create() {
     this.cameras.main.setBackgroundColor(COLORS.dark);
+    isMobile = this.sys.game.device.os.android || this.sys.game.device.os.iOS;
 
     timerText = this.add.text(config.width / 2, 50, `Zeit: ${timeLeft}`, { fontSize: "32px", color: COLORS.light, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
     scoreText = this.add.text(10, 10, `Punkte: ${score}`, { fontSize: "24px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' });
-    const highscore = localStorage.getItem("highscore") || 0;
-    highscoreText = this.add.text(10, 40, `Highscore: ${highscore}`, { fontSize: "18px", color: COLORS.light, fontFamily: "sans-serif" });
+    // const highscore = localStorage.getItem("highscore") || 0;
+    // highscoreText = this.add.text(10, 40, `Highscore: ${highscore}`, { fontSize: "18px", color: COLORS.light, fontFamily: "sans-serif" });
     levelText = this.add.text(config.width - 10, 10, `Level: ${currentLevel}`, { fontSize: "24px", color: COLORS.light, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(1, 0);
-    globalHighscoreText = this.add.text(10, config.height - 10, 'Globale Highscores laden...', { fontSize: '16px', color: COLORS.light, fontFamily: 'sans-serif', origin: [0, 1] });
+    // globalHighscoreText = this.add.text(10, config.height - 10, 'Globale Highscores laden...', { fontSize: '16px', color: COLORS.light, fontFamily: 'sans-serif', origin: [0, 1] });
 
-    const soundButton = this.add.text(config.width - 10, 40, '🔊', { fontSize: '24px', color: COLORS.light, fontFamily: 'sans-serif' })
+    const soundButton = this.add.text(config.width - 10, 40, '🔇', { fontSize: '24px', color: COLORS.light, fontFamily: 'sans-serif' })
         .setOrigin(1, 0)
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', toggleSound);
 
-    fetchGlobalHighscores(this);
+    // fetchGlobalHighscores(this);
     initializeQuestions();
     generateQuestion(this);
 
@@ -95,10 +98,27 @@ function create() {
     });
 
     music = this.sound.add('music', { loop: true, volume: 0.5 });
-    music.play();
+    // Start music only after user interaction
+    if (isMobile) {
+        this.input.once('pointerdown', () => {
+            if (!musicStarted) {
+                music.play();
+                musicStarted = true;
+                soundOn = true;
+                soundButton.setText('🔊');
+            }
+        });
+    } else {
+        if (!musicStarted) {
+            music.play();
+            musicStarted = true;
+            soundOn = true;
+            soundButton.setText('🔊');
+        }
+    }
 }
 
-function update() {}
+function update() { }
 
 function initializeQuestions() {
     availableQuestions = [];
@@ -143,7 +163,7 @@ function generateQuestion(scene) {
     questionText = scene.add.text(config.width / 2, 150, `${num1} x ${num2} = ?`, { fontSize: "64px", color: COLORS.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
 
     let possibleAnswers = [currentAnswer];
-    while (possibleAnswers.length < 6) {
+    while (possibleAnswers.length < 4) {
         const wrongAnswer = Math.round(currentAnswer + Phaser.Math.Between(-10, 10));
         if (wrongAnswer > 0 && Math.abs(wrongAnswer - currentAnswer) > 0 && !possibleAnswers.includes(wrongAnswer)) {
             possibleAnswers.push(wrongAnswer);
@@ -158,26 +178,27 @@ function createAnswerButtons(scene, answers) {
     answerButtons.forEach((button) => button.destroy());
     answerButtons = [];
 
-    const buttonWidth = 120;
-    const spacing = 10;
-    const startX = (config.width - (6 * buttonWidth + 5 * spacing)) / 2;
-    const startY = config.height - 100;
+    const buttonWidth = 250; // Increased button width
+    const buttonHeight = 80; // Increased button height
+    const spacing = 20; // Increased spacing
+    const startX = (config.width - (2 * buttonWidth + spacing)) / 2; // Centered two columns
+    const startY = config.height - 300; // Adjusted start Y position
 
     const buttonColors = [
         COLORS.primary,
-        COLORS.light,
         COLORS.secondary,
         COLORS.primary,
-        COLORS.light,
         COLORS.secondary
     ];
 
     for (let i = 0; i < answers.length; i++) {
-        const x = startX + i * (buttonWidth + spacing) + buttonWidth / 2;
-        const y = startY;
+        const col = i % 2;
+        const row = Math.floor(i / 2);
+        const x = startX + col * (buttonWidth + spacing) + buttonWidth / 2;
+        const y = startY + row * (buttonHeight + spacing);
 
         const buttonColor = buttonColors[i];
-        const button = scene.add.text(x, y, answers[i], { fontSize: "32px", color: COLORS.dark, backgroundColor: buttonColor, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
+        const button = scene.add.text(x, y, answers[i], { fontSize: "40px", color: COLORS.dark, backgroundColor: buttonColor, padding: { left: 30, right: 30, top: 20, bottom: 20 }, fontFamily: "sans-serif", fontWeight: 'bold' })
             .setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
             .on("pointerover", () => { button.setStyle({ backgroundColor: COLORS.darkAccent }); scene.tweens.add({ targets: button, scale: 1.1, duration: 100, ease: "Sine.easeInOut" }); })
@@ -403,13 +424,27 @@ function restartGame(scene) {
     currentTableLevel = 2;
     initializeQuestions();
     scene.scene.restart();
-    music.play();
+    if (isMobile) {
+        musicStarted = false;
+        soundOn = false;
+        this.input.once('pointerdown', () => {
+            if (!musicStarted) {
+                music.play();
+                musicStarted = true;
+                soundOn = true;
+                this.scene.children.list.find(child => child.type === 'Text' && child.text === '🔇').setText('🔊');
+            }
+        });
+    } else {
+        music.play();
+        soundOn = true;
+    }
 }
 
 function toggleSound() {
     soundOn = !soundOn;
     game.sound.setMute(!soundOn);
-    const soundButton = this.scene.children.list.find(child => child.type === 'Text' && child.text === (soundOn ? '🔊' : '🔇'));
+    const soundButton = this.scene.children.list.find(child => child.type === 'Text' && (child.text === '🔊' || child.text === '🔇'));
     if (soundButton) {
         soundButton.setText(soundOn ? '🔊' : '🔇');
     }
