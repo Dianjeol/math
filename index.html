@@ -1,16 +1,399 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
     <title>Mathespiel</title>
-    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
-    <script src="config.js"></script>
-    <script src="fractions.js"></script>
-    <script src="sound.js"></script>
-    <script src="game.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+    .fraction { 
+        display: inline-block; 
+        vertical-align: middle; 
+        margin: 0 0.2em 0.4ex; 
+        text-align: center; 
+    } 
+    .fraction > span { 
+        display: block; 
+        padding-top: 0.15em; 
+    } 
+    .fraction span.fdn {border-top: thin solid black; }
+        body { margin: 0; background-color: #2D3250; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: sans-serif; color: #F6F6F6; }
+        canvas { display: block; }
+        #game-container { position: relative; width: 800px; height: 700px; }
+        .button-container { position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); display: flex; justify-content: center; align-items: center; width: 100%; }
+        .answer-button { margin: 0 10px; }
+    </style>
 </head>
 <body>
     <div id="game-container"></div>
+    <script>
+        const C = {
+            bg: '#2D3250',      // Deep Navy
+            primary: '#7077A1', // Dusty Blue
+            accent: '#F6B17A',  // Warm Peach
+            light: '#F6F6F6',   // Snow White
+            dark: '#424769',    // Slate Blue
+            success: '#7CB9E8', // Sky Blue
+            alert: '#FF6B6B',   // Coral Red
+            highlight: '#FFD93D'// Golden Yellow
+        };
+        const SUPABASE_URL = 'https://dnrrdfapxzqpfabjxcji.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucnJkZmFweHpxcGZhYmp4Y2ppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NjMwODksImV4cCI6MjA1MDUzOTA4OX0.mzVEpUpoAH2JzKBEXRgQ_ParxBju9f97qRlQv4uR8aM';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let timeLeft = 15, score = 0, level = 1, questionsAsked = 0, maxLevel = 30, lastQuestionAnsweredTime = 0;
+        let soundOn = false, musicStarted = false, isMobile = false;
+        let availableQuestions = [], answerButtons = [];
+        let timerText, questionText, currentAnswer, scoreText, levelText, music, soundButton, personalHighscoreText, nextLevelButton;
+
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 700,
+            backgroundColor: C.bg,
+            parent: 'game-container',
+            scene: { preload, create, update },
+            audio: { disableWebAudio: false },
+            dom: { createContainer: true }
+        };
+
+        const game = new Phaser.Game(config);
+
+        function preload() {
+            this.load.atlas("flares", "https://labs.phaser.io/assets/particles/flares.png", "https://labs.phaser.io/assets/particles/flares.json");
+            this.load.audio("correct", "./sounds/yes.mp3");
+            this.load.audio("wrong", "./sounds/no.mp3");
+            this.load.audio("levelup", "./sounds/levelup.mp3");
+            this.load.audio("gameover", "./sounds/gameover.mp3");
+            this.load.audio('music', './sounds/song.mp3');
+            this.load.audio('great', './sounds/great.mp3');
+        }
+
+        function create() {
+            isMobile = this.sys.game.device.os.android || this.sys.game.device.os.iOS;
+        lastQuestionAnsweredTime = this.time.now;
+            timerText = this.add.text(400, 50, `Zeit: ${timeLeft}`, { fontSize: "32px", color: C.light, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
+            scoreText = this.add.text(10, 10, `Punkte: ${score}`, { fontSize: "24px", color: C.primary, fontFamily: "sans-serif", fontWeight: 'bold' });
+            
+            let personalHighscore = localStorage.getItem('personalHighscore') || 0;
+            personalHighscoreText = this.add.text(10, 40, `Highscore: ${personalHighscore}`, { fontSize: "24px", color: C.light, fontFamily: "sans-serif", fontWeight: 'bold' });
+            
+            levelText = this.add.text(790, 10, `Level: ${level} von ${maxLevel}`, { fontSize: "24px", color: C.light, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(1, 0);
+            soundButton = this.add.text(790, 70, soundOn ? 'Ton: AN' : 'Ton: AUS', { fontSize: '24px', color: C.light, fontFamily: 'sans-serif' }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', toggleSound.bind(this));
+
+            nextLevelButton = this.add.text(790, 100, 'Nächstes Level', { fontSize: '24px', color: C.light, fontFamily: 'sans-serif' }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+                if (level < maxLevel) {
+                    levelUp(this);
+                }
+            });
+          
+            initializeQuestions();
+            generateQuestion(this);
+
+            this.time.addEvent({ delay: 1000, callback: () => { timeLeft--; timerText.setText(`Zeit: ${timeLeft}`); if (timeLeft <= 0) { gameOver(this); } }, loop: true });
+
+            music = this.sound.add('music', { loop: true, volume: 0.5 });
+            if (isMobile) {
+                this.input.once('pointerdown', () => {
+                    if (!musicStarted) {
+                        music.play();
+                        musicStarted = true;
+                        soundOn = true;
+                        soundButton.setText('Ton: AN');
+                    }
+                });
+            } else {
+                if (!musicStarted) {
+                    music.play();
+                    musicStarted = true;
+                    soundOn = true;
+                    soundButton.setText('Ton: AN');
+                }
+            }
+        }
+
+        function update() { }
+        function initializeQuestions() {
+            availableQuestions = [];
+            const numbersToMultiply = [3, 4, 6, 7, 8, 9];
+            
+            if (level === 1) {
+                availableQuestions = numbersToMultiply.slice(1).map(num => ({ num1: num, num2: num, type: 'multiplication' }));
+            } else if (level === 11) {
+                availableQuestions = numbersToMultiply.slice(4).map(num => ({ num1: num, num2: num, type: 'multiplication' }));
+            } else if (level <= 10) {
+                availableQuestions = numbersToMultiply.map(num => ({ num1: num, num2: level, type: 'multiplication' }));
+            } else if (level <= 21) {
+                const divisor = level - 10;
+                availableQuestions = numbersToMultiply.map(num => ({ 
+                    num1: num * divisor, 
+                    num2: divisor, 
+                    type: 'division' 
+                }));
+            } else if (level <= 30) {
+                const divisor = level - 20;
+                for (let i = 0; i < 6; i++) {
+                    let numerator = Phaser.Math.Between(2, 8);
+                    let denominator = Phaser.Math.Between(numerator + 1, 12);
+                    denominator = Math.round(denominator / divisor) * divisor;
+                    availableQuestions.push({ 
+                        num1: numerator, 
+                        num2: denominator, 
+                        type: 'fraction', 
+                        divisor 
+                    });
+                }
+            }
+            
+            Phaser.Utils.Array.Shuffle(availableQuestions);
+        }
+
+
+        function generateQuestion(scene) {
+            if (availableQuestions.length === 0 && level !== 31) initializeQuestions();
+            if (level === 31) { congratulations(scene); return; }
+
+            const question = availableQuestions.pop();
+            let operator, result;
+            if (question.type === 'multiplication') { operator = 'x'; result = question.num1 * question.num2; }
+            else if (question.type === 'division') { operator = ':'; result = question.num1 / question.num2; }
+            else if (question.type === 'fraction') { operator = '/'; result = question.num1 / question.divisor; }
+            currentAnswer = (question.type === 'fraction') ? result / (question.num2 / question.divisor) : result;
+
+            if (questionText) questionText.destroy();
+            questionText = scene.add.text(400, 150, (question.type === 'fraction') ? `Kürze vollständig:\n${question.num1} ${operator} ${question.num2}` : `${question.num1} ${operator} ${question.num2} = ?`, { fontSize: (question.type === 'fraction') ? "45px" : "64px", color: C.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
+
+            let possibleAnswers = [currentAnswer];
+            while (possibleAnswers.length < 4) {
+                const wrongAnswer = Phaser.Math.Between(currentAnswer - 5 > 0 ? currentAnswer - 5 : 1, currentAnswer + 5);
+                if (wrongAnswer !== currentAnswer && !possibleAnswers.includes(wrongAnswer)) possibleAnswers.push(wrongAnswer);
+            }
+            Phaser.Utils.Array.Shuffle(possibleAnswers);
+            createAnswerButtons(scene, possibleAnswers);
+        }
+
+        function createAnswerButton(scene, answer, x, y, color) {
+            return scene.add.text(x, y, answer, { fontSize: "40px", color: C.dark, backgroundColor: color, padding: { left: 30, right: 30, top: 20, bottom: 20 }, fontFamily: "sans-serif", fontWeight: 'bold' })
+                .setOrigin(0.5)
+                .setInteractive({ useHandCursor: true })
+                .on("pointerover", () => { button.setStyle({ backgroundColor: C.accent }); scene.tweens.add({ targets: button, scale: 1.1, duration: 100, ease: "Sine.easeInOut" }); })
+                .on("pointerout", () => { button.setStyle({ backgroundColor: color }); scene.tweens.add({ targets: button, scale: 1, duration: 100, ease: "Sine.easeInOut" }); })
+                .on("pointerdown", function () { checkAnswer(this.text, scene, this); });
+        }
+
+        function createAnswerButtons(scene, answers) {
+          answerButtons.forEach(button => button.destroy());
+          answerButtons = [];
+      
+          const buttonContainer = scene.add.container(0, 0);
+          const buttonWidth = 180;
+          const spacing = 20;
+          const buttonColors = [C.accent, C.accent];
+      
+          for (let i = 0; i < answers.length; i++) {
+              const x = i * (buttonWidth + spacing);
+              const y = 0;
+              const button = createAnswerButton(scene, answers[i], x, y, buttonColors[i % 2]);
+              buttonContainer.add(button);
+              answerButtons.push(button);
+          }
+      
+          buttonContainer.setPosition(400 - buttonContainer.getBounds().width / 2, 500); // Zentriert die Buttons
+      }
+      
+
+        function checkAnswer(selectedAnswer, scene, button) {
+            const isCorrect = parseInt(selectedAnswer) === parseInt(currentAnswer);
+            if (isCorrect) {
+                const timeToAnswer = scene.time.now - lastQuestionAnsweredTime;
+                if (timeToAnswer < 3000) {
+                    score += 20;
+                    if (soundOn) scene.sound.play("great");
+                } else {
+                    score += 10;
+                    if (soundOn) scene.sound.play("correct");
+                }
+                lastQuestionAnsweredTime = scene.time.now;
+
+                scoreText.setText(`Punkte: ${score}`);
+                questionsAsked++;
+                timeLeft = 15;
+                timerText.setText(`Zeit: ${timeLeft}`);
+                if (questionsAsked >= 6) levelUp(scene);
+                else generateQuestion(scene);
+            } else {
+                timeLeft -= 5;
+                if (timeLeft < 0) timeLeft = 0;
+                timerText.setText(`Zeit: ${timeLeft}`);
+                if (soundOn) scene.sound.play("wrong");
+                if (button) scene.tweens.add({ targets: button, backgroundColor: { from: C.alert, to: C.accent }, duration: 250, ease: "Linear", yoyo: true });
+            }
+        }
+
+        function levelUp(scene) {
+            if (level === maxLevel) { congratulations(scene); return; }
+            const levelUpText = scene.add.text(400, 300, `Level Up!`, { fontSize: "64px", color: C.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
+            if (soundOn) scene.sound.play("levelup");
+            scene.tweens.add({ targets: levelUpText, scale: 1.5, y: 200, alpha: 0, duration: 1500, ease: "Cubic.easeOut", onComplete: () => levelUpText.destroy() });
+            const emitter = scene.add.particles(400, 300, "flares", { blendMode: "ADD", lifespan: 1500, speed: { min: 100, max: 400 }, angle: { min: 0, max: 360 }, scale: { start: 1.2, end: 0 }, quantity: 50 });
+            scene.time.delayedCall(1500, () => emitter.destroy());
+            level++;
+            levelText.setText(`Level: ${level} von ${maxLevel}`);
+            questionsAsked = 0;
+            timeLeft = 15;
+            initializeQuestions();
+            generateQuestion(scene);
+        }
+
+        function congratulations(scene) {
+            const congratsText = scene.add.text(400, 300, `Herzlichen Glückwunsch!\nDu hast das Spiel\ndurchgespielt!`, { fontSize: "45px", color: C.primary, fontFamily: "sans-serif", fontWeight: 'bold', align: 'center' }).setOrigin(0.5);
+            if (soundOn) scene.sound.play("levelup");
+            scene.tweens.add({ targets: congratsText, scale: 1.5, y: 200, alpha: 0, duration: 3000, ease: "Cubic.easeOut", onComplete: () => congratsText.destroy() });
+            const emitter = scene.add.particles(400, 300, "flares", { blendMode: "ADD", lifespan: 1500, speed: { min: 100, max: 400 }, angle: { min: 0, max: 360 }, scale: { start: 1.2, end: 0 }, quantity: 50 });
+            scene.time.delayedCall(3000, () => emitter.destroy());
+        }
+
+        async function gameOver(scene) {
+            scene.time.removeAllEvents();
+            const background = scene.add.rectangle(0, 0, 800, 700, 0x000000, 0.7).setOrigin(0);
+            const gameOverMenu = scene.add.container(400, 350);
+            const gameOverText = scene.add.text(0, -150, 'Game Over!', { fontSize: "64px", color: C.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
+            const finalScoreText = scene.add.text(0, -80, `Deine Punktzahl: ${score}`, { fontSize: "32px", color: C.light, fontFamily: "sans-serif" }).setOrigin(0.5);
+            let username = localStorage.getItem('username');
+            if (!username) {
+              const usernameInput = scene.add.dom(0, -20, 'input', `width: 200px; height: 30px; font-size: 16px; text-align: center; background-color: ${C.light}; color: ${C.dark}; border: 2px solid ${C.primary}; border-radius: 5px;`, 'Your Name');
+              const saveScoreButton = scene.add.text(0, 30, 'Speichern', { fontSize: "24px", color: C.light, backgroundColor: C.accent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
+                  .setOrigin(0.5)
+                  .setInteractive({ useHandCursor: true })
+                  .on("pointerover", () => saveScoreButton.setStyle({ backgroundColor: C.primary, color: C.dark }))
+                  .on("pointerout", () => saveScoreButton.setStyle({ backgroundColor: C.accent, color: C.light }))
+                  .on("pointerdown", async () => {
+                      username = usernameInput.node.value.trim();
+                      if (username) {
+                          localStorage.setItem('username', username);
+                          const success = await submitScore(username, score);
+                          if (success) {
+                            gameOverMenu.destroy();
+                            background.destroy();
+                            await showGlobalHighscores(scene, username, score);
+                          } else {
+                              alert('Fehler beim Senden der Highscore.');
+                          }
+                      } else {
+                          alert('Bitte gib einen Namen ein.');
+                      }
+                  });
+              gameOverMenu.add([gameOverText, finalScoreText, usernameInput, saveScoreButton]);
+            } else {
+                const success = await submitScore(username, score);
+                if (success) {
+                  gameOverMenu.destroy();
+                  background.destroy();
+                  await showGlobalHighscores(scene, username, score);
+                } else {
+                    alert('Fehler beim Senden der Highscore.');
+                }
+            }
+        
+            if (soundOn) scene.sound.play("gameover");
+            music.stop();
+        }
+        
+        async function showGlobalHighscores(scene, username, score) {
+            try {
+                const { data: highscores, error } = await supabase.from('highscores').select('username, score').order('score', { ascending: false });
+                if (error) throw error;
+        
+                const highscoresMenu = scene.add.container(400, 350);
+                const background = scene.add.rectangle(-400, -350, 800, 700, C.dark, 0.8).setOrigin(0); // Hintergrund hinzufügen
+                highscoresMenu.add(background);
+                
+                const backButton = scene.add.text(0, 280, 'Neustart', { fontSize: "24px", color: C.light, backgroundColor: C.accent, padding: { left: 15, right: 15, top: 10, bottom: 10 }, fontFamily: "sans-serif", fontWeight: 'bold' })
+                    .setOrigin(0.5)
+                    .setInteractive({ useHandCursor: true })
+                    .on("pointerover", () => backButton.setStyle({ backgroundColor: C.primary, color: C.dark }))
+                    .on("pointerout", () => backButton.setStyle({ backgroundColor: C.accent, color: C.light }))
+                    .on("pointerdown", () => { highscoresMenu.destroy(); restartGame(scene); });
+                highscoresMenu.add(backButton);
+        
+                let playerRank = -1;
+                if (username) {
+                    for (let i = 0; i < highscores.length; i++) {
+                        if (highscores[i].username === username && highscores[i].score === score) {
+                            playerRank = i;
+                            break;
+                        }
+                    }
+                }
+        
+                if (highscores.length > 0) {
+                    let yOffset = -180;
+                    const startIndex = Math.max(0, playerRank - 2);
+                    const endIndex = Math.min(highscores.length - 1, playerRank + 2);
+        
+                    if (playerRank === -1 && username) {
+                      highscoresMenu.add(scene.add.text(0, yOffset, `Dein Name wurde nicht in den Top 100 gefunden.`, { fontSize: "24px", color: C.light, fontFamily: "sans-serif" }).setOrigin(0.5));
+                      yOffset += 60;
+                    } else if (username) {
+                      highscoresMenu.add(scene.add.text(0, yOffset, `Deine Punktzahl: ${score}`, { fontSize: "24px", color: C.light, fontFamily: "sans-serif" }).setOrigin(0.5));
+                      yOffset += 30;
+                      highscoresMenu.add(scene.add.text(0, yOffset, `Dein Name: ${username}`, { fontSize: "24px", color: C.light, fontFamily: "sans-serif" }).setOrigin(0.5));
+                      yOffset += 60;
+                    }
+        
+                    for (let i = startIndex; i <= endIndex; i++) {
+                        const entry = highscores[i];
+                        const isPlayer = playerRank !== -1 && i === playerRank;
+                        const text = scene.add.text(0, yOffset, `${i + 1}. ${entry.username}: ${entry.score}`, {
+                            fontSize: "24px",
+                            color: isPlayer ? C.highlight : C.light,
+                            fontFamily: "sans-serif",
+                            fontWeight: isPlayer ? 'bold' : 'normal'
+                        }).setOrigin(0.5);
+                        highscoresMenu.add(text);
+                        yOffset += 30;
+                    }
+                } else {
+                    highscoresMenu.add(scene.add.text(0, 0, 'Noch keine Highscores', { fontSize: "24px", color: C.light, fontFamily: "sans-serif" }).setOrigin(0.5));
+                }
+            } catch (error) {
+                console.error("Fehler beim Laden der globalen Highscores:", error);
+                scene.add.text(0, 0, 'Fehler beim Laden der Highscores', { fontSize: "24px", color: C.light, fontFamily: "sans-serif" }).setOrigin(0.5);
+            }
+        }
+        
+
+        async function submitScore(username, score) {
+            try {
+                const { error } = await supabase.from('highscores').insert([{ username, score }]);
+                if (error) throw error;
+                if (score > (localStorage.getItem('personalHighscore') || 0)) {
+                    localStorage.setItem('personalHighscore', score);
+                }
+                return true;
+            } catch (error) {
+                console.error("Fehler beim Senden der Highscore:", error);
+                return false;
+            }
+        }
+
+        function restartGame(scene) {
+            score = 0;
+            timeLeft = 15;
+            level = 1;
+            questionsAsked = 0;
+            lastQuestionAnsweredTime = 0;
+            initializeQuestions();
+            scene.scene.restart();
+            if (isMobile) { musicStarted = false; soundOn = false; this.input.once('pointerdown', () => { if (!musicStarted) { music.play(); musicStarted = true; soundOn = true; soundButton.setText('Ton: AN'); } }); }
+            else { music.play(); soundOn = true; }
+        }
+
+        function toggleSound() {
+            soundOn = !soundOn;
+            game.sound.setMute(!soundOn);
+            soundButton.setText(soundOn ? 'Ton: AN' : 'Ton: AUS');
+            if (music) music.setMute(!soundOn);
+        }
+    </script>
 </body>
 </html>
