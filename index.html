@@ -29,7 +29,7 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucnJkZmFweHpxcGZhYmp4Y2ppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NjMwODksImV4cCI6MjA1MDUzOTA4OX0.mzVEpUpoAH2JzKBEXRgQ_ParxBju9f97qRlQv4uR8aM';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let timeLeft = 15, score = 0, level = 1, questionsAsked = 0, maxLevel = 30;
+        let timeLeft = 15, score = 0, level = 1, questionsAsked = 0, maxLevel = 30, lastQuestionAnsweredTime = 0;
         let soundOn = false, musicStarted = false, isMobile = false;
         let availableQuestions = [], answerButtons = [];
         let timerText, questionText, currentAnswer, scoreText, levelText, music, soundButton, personalHighscoreText, nextLevelButton;
@@ -59,6 +59,7 @@
 
         function create() {
             isMobile = this.sys.game.device.os.android || this.sys.game.device.os.iOS;
+        lastQuestionAnsweredTime = this.time.now;
             timerText = this.add.text(400, 50, `Zeit: ${timeLeft}`, { fontSize: "32px", color: C.light, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
             scoreText = this.add.text(10, 10, `Punkte: ${score}`, { fontSize: "24px", color: C.primary, fontFamily: "sans-serif", fontWeight: 'bold' });
             
