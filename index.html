@@ -10,12 +10,13 @@
         vertical-align: middle; 
         margin: 0 0.2em 0.4ex; 
         text-align: center; 
-    } 
+        font-size: 40px; 
+    }
     .fraction > span { 
         display: block; 
         padding-top: 0.15em; 
     } 
-    .fraction span.fdn {border-top: thin solid black; }
+    .fraction span.fdn { border-top: 2px solid black; padding-top: 0.25em; }
         body { margin: 0; background-color: #2D3250; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: sans-serif; color: #F6F6F6; }
         canvas { display: block; }
         #game-container { position: relative; width: 800px; height: 700px; }
@@ -112,6 +113,20 @@
         }
 
         function update() { }
+        function formatFraction(numerator, denominator) {
+            return `<div class="fraction">
+                <span>${numerator}</span>
+                <span class="fdn">${denominator}</span>
+            </div>`;
+        }
+
+        function reduceFraction(numerator, denominator) {
+            function gcd(a, b) {
+                return b ? gcd(b, a % b) : a;
+            }
+            const divisor = gcd(Math.abs(numerator), Math.abs(denominator));
+            return [Math.round(numerator/divisor), Math.round(denominator/divisor)];
+        }
         function initializeQuestions() {
             availableQuestions = [];
             const numbersToMultiply = [3, 4, 6, 7, 8, 9];
@@ -153,22 +168,56 @@
             if (level === 31) { congratulations(scene); return; }
 
             const question = availableQuestions.pop();
-            let operator, result;
-            if (question.type === 'multiplication') { operator = 'x'; result = question.num1 * question.num2; }
-            else if (question.type === 'division') { operator = ':'; result = question.num1 / question.num2; }
-            else if (question.type === 'fraction') { operator = '/'; result = question.num1 / question.divisor; }
-            currentAnswer = (question.type === 'fraction') ? result / (question.num2 / question.divisor) : result;
+            let display, result;
+            
+            if (question.type === "multiplication") {
+                display = `${question.num1} × ${question.num2}`;
+                result = question.num1 * question.num2;
+                currentAnswer = result;
+            } else if (question.type === "division") {
+                display = formatFraction(question.num1, question.num2);
+                result = question.num1 / question.num2;
+                currentAnswer = result;
+            } else if (question.type === "fraction") {
+                display = `Kürze vollständig:
+${formatFraction(question.num1, question.num2)}`;
+                result = question.num1 / question.divisor;
+                currentAnswer = result / (question.num2 / question.divisor);
+            }
 
             if (questionText) questionText.destroy();
-            questionText = scene.add.text(400, 150, (question.type === 'fraction') ? `Kürze vollständig:\n${question.num1} ${operator} ${question.num2}` : `${question.num1} ${operator} ${question.num2} = ?`, { fontSize: (question.type === 'fraction') ? "45px" : "64px", color: C.primary, fontFamily: "sans-serif", fontWeight: 'bold' }).setOrigin(0.5);
+            questionText = scene.add.dom(400, 150).createFromHTML(
+                `<div style="text-align: center; font-size: 32px; color: ${C.light}; font-family: sans-serif; font-weight: bold;">${display}</div>`
+            ).setOrigin(0.5);
 
-            let possibleAnswers = [currentAnswer];
-            while (possibleAnswers.length < 4) {
-                const wrongAnswer = Phaser.Math.Between(currentAnswer - 5 > 0 ? currentAnswer - 5 : 1, currentAnswer + 5);
-                if (wrongAnswer !== currentAnswer && !possibleAnswers.includes(wrongAnswer)) possibleAnswers.push(wrongAnswer);
+            let possibleAnswers = [];
+            if (question.type === "fraction" || question.type === "division") {
+                const correctFraction = reduceFraction(question.num1, question.num2);
+                possibleAnswers.push(correctFraction);
+                
+                while (possibleAnswers.length < 4) {
+                    const wrongNum = question.num1 + Phaser.Math.Between(-2, 2);
+                    const wrongDen = question.num2 + Phaser.Math.Between(-2, 2);
+                    if (wrongDen > 0 && wrongNum > 0 && wrongNum/wrongDen !== correctFraction[0]/correctFraction[1]) {
+                        const reducedWrong = reduceFraction(wrongNum, wrongDen);
+                        if (!possibleAnswers.some(ans => ans[0]/ans[1] === reducedWrong[0]/reducedWrong[1])) {
+                            possibleAnswers.push(reducedWrong);
+                        }
+                    }
+                }
+            } else {
+                possibleAnswers = [result];
+                while (possibleAnswers.length < 4) {
+                    const wrongAnswer = result + Phaser.Math.Between(-5, 5);
+                    if (wrongAnswer > 0 && !possibleAnswers.includes(wrongAnswer)) {
+                        possibleAnswers.push(wrongAnswer);
+                    }
+                }
             }
+            
             Phaser.Utils.Array.Shuffle(possibleAnswers);
-            createAnswerButtons(scene, possibleAnswers);
+            createAnswerButtons(scene, possibleAnswers, question.type);
+        }
         }
 
         function createAnswerButton(scene, answer, x, y, color) {
@@ -180,35 +229,93 @@
                 .on("pointerdown", function () { checkAnswer(this.text, scene, this); });
         }
 
-        function createAnswerButtons(scene, answers) {
-          answerButtons.forEach(button => button.destroy());
-          answerButtons = [];
-      
-          const buttonContainer = scene.add.container(0, 0);
-          const buttonWidth = 180;
-          const spacing = 20;
-          const buttonColors = [C.accent, C.accent];
-      
-          for (let i = 0; i < answers.length; i++) {
-              const x = i * (buttonWidth + spacing);
-              const y = 0;
-              const button = createAnswerButton(scene, answers[i], x, y, buttonColors[i % 2]);
-              buttonContainer.add(button);
-              answerButtons.push(button);
-          }
-      
-          buttonContainer.setPosition(400 - buttonContainer.getBounds().width / 2, 500); // Zentriert die Buttons
+        function createAnswerButtons(scene, answers, type) {
+            answerButtons.forEach(button => button.destroy());
+            answerButtons = [];
+        
+            const buttonContainer = scene.add.container(0, 0);
+            const buttonWidth = 180;
+            const spacing = 20;
+            const buttonColors = [C.accent, C.accent];
+        
+            for (let i = 0; i < answers.length; i++) {
+                const x = i * (buttonWidth + spacing);
+                const y = 0;
+                let display;
+                if (type === "fraction" || type === "division") {
+                    display = formatFraction(answers[i][0], answers[i][1]);
+                } else {
+                    display = answers[i].toString();
+                }
+                const button = scene.add.dom(x, y).createFromHTML(`
+                    <div style="
+                        background-color: ${buttonColors[i % 2]};
+                        padding: 20px 30px;
+                        border-radius: 5px;
+                        font-size: 40px;
+                        color: ${C.dark};
+                        cursor: pointer;
+                        font-family: sans-serif;
+                        font-weight: bold;
+                        text-align: center;
+                    ">${display}</div>
+                `).setOrigin(0.5);
+                
+                button.addListener("click");
+                button.on("click", function () {
+                    checkAnswer(answers[i], scene, button, type);
+                });
+                
+                buttonContainer.add(button);
+                answerButtons.push(button);
+            }
+        
+            buttonContainer.setPosition(400 - buttonContainer.getBounds().width / 2, 500);
+        }
       }
       
 
-        function checkAnswer(selectedAnswer, scene, button) {
-            const isCorrect = parseInt(selectedAnswer) === parseInt(currentAnswer);
+        function checkAnswer(selectedAnswer, scene, button, type) {
+            let isCorrect;
+            if (type === "fraction" || type === "division") {
+                isCorrect = Math.abs((selectedAnswer[0] / selectedAnswer[1]) - currentAnswer) < 0.0001;
+            } else {
+                isCorrect = Math.abs(selectedAnswer - currentAnswer) < 0.0001;
+            }
+
             if (isCorrect) {
                 const timeToAnswer = scene.time.now - lastQuestionAnsweredTime;
                 if (timeToAnswer < 3000) {
                     score += 20;
                     if (soundOn) scene.sound.play("great");
                 } else {
+                    score += 10;
+                    if (soundOn) scene.sound.play("correct");
+                }
+                lastQuestionAnsweredTime = scene.time.now;
+
+                scoreText.setText(`Punkte: ${score}`);
+                questionsAsked++;
+                timeLeft = 15;
+                timerText.setText(`Zeit: ${timeLeft}`);
+                if (questionsAsked >= 6) levelUp(scene);
+                else generateQuestion(scene);
+            } else {
+                timeLeft -= 5;
+                if (timeLeft < 0) timeLeft = 0;
+                timerText.setText(`Zeit: ${timeLeft}`);
+                if (soundOn) scene.sound.play("wrong");
+                const buttonElement = button.getChildByID("button");
+                if (buttonElement) {
+                    buttonElement.style.backgroundColor = C.alert;
+                    setTimeout(() => {
+                        if (buttonElement) {
+                            buttonElement.style.backgroundColor = C.accent;
+                        }
+                    }, 250);
+                }
+            }
+        }
                     score += 10;
                     if (soundOn) scene.sound.play("correct");
                 }
