@@ -113,27 +113,6 @@
 
         function update() { }
 
-        function initializeQuestions() {
-            availableQuestions = [];
-            const numbersToMultiply = [3, 4, 6, 7, 8, 9];
-            if (level === 1) availableQuestions = numbersToMultiply.slice(1).map(num => ({ num1: num, num2: num, type: 'multiplication' }));
-            else if (level === 11) availableQuestions = numbersToMultiply.slice(4).map(num => ({ num1: num, num2: num, type: 'multiplication' }));
-            else if (level <= 10) availableQuestions = numbersToMultiply.map(num => ({ num1: num, num2: level, type: 'multiplication' }));
-            else if (level <= 21) {
-                const divisor = level - 10;
-            }
-                availableQuestions = numbersToMultiply.map(num => ({ num1: num * divisor, num2: divisor, type: 'division' }));
-            else if (level <= 30) {
-                const divisor = level - 20;
-                for (let i = 0; i < 6; i++) {
-                    let numerator = Phaser.Math.Between(2, 8);
-                    let denominator = Phaser.Math.Between(numerator + 1, 12);
-                    denominator = Math.round(denominator / divisor) * divisor;
-                    availableQuestions.push({ num1: numerator, num2: denominator, type: 'fraction', divisor });
-                }
-            }
-            Phaser.Utils.Array.Shuffle(availableQuestions);
-        }
 
         function generateQuestion(scene) {
             if (availableQuestions.length === 0 && level !== 31) initializeQuestions();
@@ -384,3 +363,37 @@
     </script>
 </body>
 </html>
+        function initializeQuestions() {
+            availableQuestions = [];
+            const numbersToMultiply = [3, 4, 6, 7, 8, 9];
+            
+            if (level === 1) {
+                availableQuestions = numbersToMultiply.slice(1).map(num => ({ num1: num, num2: num, type: 'multiplication' }));
+            } else if (level === 11) {
+                availableQuestions = numbersToMultiply.slice(4).map(num => ({ num1: num, num2: num, type: 'multiplication' }));
+            } else if (level <= 10) {
+                availableQuestions = numbersToMultiply.map(num => ({ num1: num, num2: level, type: 'multiplication' }));
+            } else if (level <= 21) {
+                const divisor = level - 10;
+                availableQuestions = numbersToMultiply.map(num => ({ 
+                    num1: num * divisor, 
+                    num2: divisor, 
+                    type: 'division' 
+                }));
+            } else if (level <= 30) {
+                const divisor = level - 20;
+                for (let i = 0; i < 6; i++) {
+                    let numerator = Phaser.Math.Between(2, 8);
+                    let denominator = Phaser.Math.Between(numerator + 1, 12);
+                    denominator = Math.round(denominator / divisor) * divisor;
+                    availableQuestions.push({ 
+                        num1: numerator, 
+                        num2: denominator, 
+                        type: 'fraction', 
+                        divisor 
+                    });
+                }
+            }
+            
+            Phaser.Utils.Array.Shuffle(availableQuestions);
+        }
