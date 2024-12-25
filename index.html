@@ -5,6 +5,17 @@
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+    .fraction { 
+        display: inline-block; 
+        vertical-align: middle; 
+        margin: 0 0.2em 0.4ex; 
+        text-align: center; 
+    } 
+    .fraction > span { 
+        display: block; 
+        padding-top: 0.15em; 
+    } 
+    .fraction span.fdn {border-top: thin solid black; }
         body { margin: 0; background-color: #2D3250; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: sans-serif; color: #F6F6F6; }
         canvas { display: block; }
         #game-container { position: relative; width: 800px; height: 700px; }
@@ -111,12 +122,13 @@
             else if (level <= 21) {
                 const divisor = level - 10;
                 availableQuestions = numbersToMultiply.map(num => ({ num1: num * divisor, num2: divisor, type: 'division' }));
-            } else if (level <= 30) {
+            else if (level <= 30) {
                 const divisor = level - 20;
                 for (let i = 0; i < 6; i++) {
-                    let numerator = Phaser.Math.Between(divisor, 50);
-                    numerator = Math.round(numerator / divisor) * divisor;
-                    availableQuestions.push({ num1: numerator, num2: Phaser.Math.Between(2, 10) * divisor, type: 'fraction', divisor });
+                    let numerator = Phaser.Math.Between(2, 8);
+                    let denominator = Phaser.Math.Between(numerator + 1, 12);
+                    denominator = Math.round(denominator / divisor) * divisor;
+                    availableQuestions.push({ num1: numerator, num2: denominator, type: 'fraction', divisor });
                 }
             }
             Phaser.Utils.Array.Shuffle(availableQuestions);
