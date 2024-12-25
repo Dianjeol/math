@@ -119,17 +119,6 @@
                 <span class="fdn">${denominator}</span>
             </div>`;
         }
-                <span class="fdn">${denominator}</span>
-            </div>`;
-        }
-            const divisor = gcd(Math.abs(numerator), Math.abs(denominator));
-            return [Math.round(numerator/divisor), Math.round(denominator/divisor)];
-        }
-            return `<div class="fraction">
-                <span>${numerator}</span>
-                <span class="fdn">${denominator}</span>
-            </div>`;
-        }
 
         function reduceFraction(numerator, denominator) {
             function gcd(a, b) {
@@ -240,102 +229,6 @@ ${formatFraction(question.num1, question.num2)}`;
             for (let i = 0; i < answers.length; i++) {
                 const x = i * (buttonWidth + spacing);
                 const y = 0;
-                let display;
-                if (type === "fraction" || type === "division") {
-                    display = formatFraction(answers[i][0], answers[i][1]);
-                } else {
-                    display = answers[i].toString();
-                }
-                const button = scene.add.dom(x, y).createFromHTML(`
-                    <div style="
-                        background-color: ${buttonColors[i % 2]};
-                        padding: 20px 30px;
-                        border-radius: 5px;
-                        font-size: 40px;
-                        color: ${C.dark};
-                        cursor: pointer;
-                        font-family: sans-serif;
-                        font-weight: bold;
-                        text-align: center;
-                    ">${display}</div>
-                `).setOrigin(0.5);
-                
-                button.addListener("click");
-                button.on("click", function () {
-                    checkAnswer(answers[i], scene, button, type);
-                });
-                
-                buttonContainer.add(button);
-                answerButtons.push(button);
-            }
-        
-            buttonContainer.setPosition(400 - buttonContainer.getBounds().width / 2, 500);
-        }
-            if (availableQuestions.length === 0 && level !== 31) initializeQuestions();
-            if (level === 31) { congratulations(scene); return; }
-
-            const question = availableQuestions.pop();
-            let display, result;
-            
-            if (question.type === "multiplication") {
-                display = `${question.num1} × ${question.num2}`;
-                result = question.num1 * question.num2;
-                currentAnswer = result;
-            } else if (question.type === "division") {
-                display = formatFraction(question.num1, question.num2);
-                result = question.num1 / question.num2;
-                currentAnswer = result;
-            } else if (question.type === "fraction") {
-                display = `Kürze vollständig:
-${formatFraction(question.num1, question.num2)}`;
-                result = question.num1 / question.divisor;
-                currentAnswer = result / (question.num2 / question.divisor);
-            }
-
-            if (questionText) questionText.destroy();
-            questionText = scene.add.dom(400, 150).createFromHTML(
-                `<div style="text-align: center; font-size: 32px; color: ${C.light}; font-family: sans-serif; font-weight: bold;">${display}</div>`
-            ).setOrigin(0.5);
-
-            let possibleAnswers = [];
-            if (question.type === "fraction" || question.type === "division") {
-                const correctFraction = reduceFraction(question.num1, question.num2);
-                possibleAnswers.push(correctFraction);
-                
-                while (possibleAnswers.length < 4) {
-                    const wrongNum = question.num1 + Phaser.Math.Between(-2, 2);
-                    const wrongDen = question.num2 + Phaser.Math.Between(-2, 2);
-                    if (wrongDen > 0 && wrongNum > 0 && wrongNum/wrongDen !== correctFraction[0]/correctFraction[1]) {
-                        const reducedWrong = reduceFraction(wrongNum, wrongDen);
-                        if (!possibleAnswers.some(ans => ans[0]/ans[1] === reducedWrong[0]/reducedWrong[1])) {
-                            possibleAnswers.push(reducedWrong);
-                        }
-                    }
-                }
-            } else {
-                possibleAnswers = [result];
-                while (possibleAnswers.length < 4) {
-                    const wrongAnswer = result + Phaser.Math.Between(-5, 5);
-                    if (wrongAnswer > 0 && !possibleAnswers.includes(wrongAnswer)) {
-                        possibleAnswers.push(wrongAnswer);
-                    }
-                }
-            }
-            
-            Phaser.Utils.Array.Shuffle(possibleAnswers);
-            createAnswerButtons(scene, possibleAnswers, question.type);
-        }
-
-        function createAnswerButtons(scene, answers, type) {
-            answerButtons.forEach(button => button.destroy());
-            answerButtons = [];
-        
-            const buttonContainer = scene.add.container(0, 0);
-            const buttonWidth = 180;
-            const spacing = 20;
-            const buttonColors = [C.accent, C.accent];
-        
-            for (let i = 0; i < answers.length; i++) {
                 const x = i * (buttonWidth + spacing);
                 const y = 0;
                 let display;
@@ -412,6 +305,73 @@ ${formatFraction(question.num1, question.num2)}`;
             }
         }
 
+
+        function levelUp(scene) {
+            if (level === maxLevel) { congratulations(scene); return; }
+            const levelUpText = scene.add.text(400, 300, `Level Up!`, { fontSize: "64px", color: C.primary, fontFamily: "sans-serif", fontWeight: "bold" }).setOrigin(0.5);
+            if (soundOn) scene.sound.play("levelup");
+            scene.tweens.add({ targets: levelUpText, scale: 1.5, y: 200, alpha: 0, duration: 1500, ease: "Cubic.easeOut", onComplete: () => levelUpText.destroy() });
+            const emitter = scene.add.particles(400, 300, "flares", { blendMode: "ADD", lifespan: 1500, speed: { min: 100, max: 400 }, angle: { min: 0, max: 360 }, scale: { start: 1.2, end: 0 } });
+            scene.time.delayedCall(1500, () => emitter.destroy());
+            level++;
+            levelText.setText(`Level: ${level} von ${maxLevel}`);
+            questionsAsked = 0;
+            timeLeft = 15;
+            initializeQuestions();
+            generateQuestion(scene);
+        }
+
+        function congratulations(scene) {
+            const congratsText = scene.add.text(400, 300, `Herzlichen Glückwunsch!
+Du hast das Spiel
+durchgespielt!`, { fontSize: "45px", color: C.primary, fontFamily: "sans-serif", fontWeight: "bold" }).setOrigin(0.5);
+            if (soundOn) scene.sound.play("levelup");
+            scene.tweens.add({ targets: congratsText, scale: 1.5, y: 200, alpha: 0, duration: 3000, ease: "Cubic.easeOut", onComplete: () => congratsText.destroy() });
+            const emitter = scene.add.particles(400, 300, "flares", { blendMode: "ADD", lifespan: 1500, speed: { min: 100, max: 400 }, angle: { min: 0, max: 360 }, scale: { start: 1.2, end: 0 } });
+            scene.time.delayedCall(3000, () => emitter.destroy());
+        }
+
+        function gameOver(scene) {
+            scene.time.removeAllEvents();
+            const background = scene.add.rectangle(0, 0, 800, 700, 0x000000, 0.7).setOrigin(0);
+            const gameOverText = scene.add.text(400, 200, "Game Over!", { fontSize: "64px", color: C.primary, fontFamily: "sans-serif", fontWeight: "bold" }).setOrigin(0.5);
+            if (soundOn) scene.sound.play("gameover");
+            const finalScore = scene.add.text(400, 300, `Dein Score: ${score}`, { fontSize: "32px", color: C.light, fontFamily: "sans-serif" }).setOrigin(0.5);
+            music.stop();
+            
+            const restartButton = scene.add.text(400, 400, "Neustart", {
+                fontSize: "32px",
+                backgroundColor: C.accent,
+                padding: { left: 15, right: 15, top: 10, bottom: 10 },
+                color: C.dark,
+                fontFamily: "sans-serif"
+            }).setOrigin(0.5).setInteractive({ useHandCursor: true })
+            .on("pointerover", () => restartButton.setStyle({ backgroundColor: C.primary }))
+            .on("pointerout", () => restartButton.setStyle({ backgroundColor: C.accent }))
+            .on("pointerdown", () => {
+                background.destroy();
+                gameOverText.destroy();
+                finalScore.destroy();
+                restartButton.destroy();
+                restartGame(scene);
+            });
+        }
+
+        function restartGame(scene) {
+            score = 0;
+            level = 1;
+            timeLeft = 15;
+            questionsAsked = 0;
+            lastQuestionAnsweredTime = 0;
+            initializeQuestions();
+            scene.scene.restart();
+        }
+
+        function toggleSound() {
+            soundOn = !soundOn;
+            music.setMute(!soundOn);
+            soundButton.setText(soundOn ? "Ton: AN" : "Ton: AUS");
+        }
 
         function initializeQuestions() {
             availableQuestions = [];
