@@ -121,6 +121,7 @@
             else if (level <= 10) availableQuestions = numbersToMultiply.map(num => ({ num1: num, num2: level, type: 'multiplication' }));
             else if (level <= 21) {
                 const divisor = level - 10;
+            }
                 availableQuestions = numbersToMultiply.map(num => ({ num1: num * divisor, num2: divisor, type: 'division' }));
             else if (level <= 30) {
                 const divisor = level - 20;
